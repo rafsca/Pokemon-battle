@@ -1,0 +1,94 @@
+/* Header logo */
+.logo {
+    cursor: pointer;
+    height: 48px;
+}
+
+/* Modern navbar styles */
+nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 1.25rem;
+    /* soft dark glassy background so white text is visible on light pages */
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(6px) saturate(120%);
+    -webkit-backdrop-filter: blur(6px) saturate(120%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    position: sticky;
+    top: 0;
+    z-index: 40;
+}
+
+nav .left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+nav .brand {
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: 0.2px;
+    color: #fff;
+}
+
+nav .links {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+nav button,
+nav a {
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: none;
+    color: #fff;
+    padding: 0.5rem 0.9rem;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 180ms ease, transform 120ms ease, box-shadow 180ms ease;
+}
+
+nav button:hover,
+nav a:hover {
+    background: rgba(255, 255, 255, 0.04);
+    transform: translateY(-2px);
+}
+
+
+/* Active route indicator */
+nav a.active,
+nav button.active {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
+}
+
+
+/* small screens: stack nav items */
+@media (max-width: 640px) {
+    nav {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+        padding: 0.75rem;
+    }
+
+    nav .links {
+        justify-content: space-around;
+    }
+
+    .logo {
+        height: 40px;
+    }
+}
+
+/* subtle contrast for type badges inside pages */
+.type-unknown {
+    opacity: 0.85;
+}

@@ -1,0 +1,128 @@
+<div class="battle-page">
+    @if (isLoading()) {
+    <div class="battle-loading">Caricamento Pokémon...</div>
+    }
+    @if (pokemon1() && pokemon2()) {
+    <div class="battle-arena-classic">
+        <div class="battle-opponent">
+            <!-- Barra HP Pokemon 2 -->
+            <div class="battle-hp-container battle-hp-container--opponent">
+                <div class="battle-hp-container__label">{{ pokemon2()?.name }}: {{ getHpPercentage(pokemon2CurrentHp(),
+                    pokemon2()) }}%</div>
+                <div class="battle-hp-container__bar">
+                    <div class="battle-hp-container__bar-fill"
+                        [class]="'battle-hp-container__bar-fill--' + getHpBarClass(getHpPercentage(pokemon2CurrentHp(), pokemon2()))"
+                        [style.width.%]="getHpPercentage(pokemon2CurrentHp(), pokemon2())"></div>
+                </div>
+                <div class="battle-hp-container__value">{{ pokemon2CurrentHp() }} / {{ getHpBaseStat(pokemon2()) }} HP
+                </div>
+
+            </div>
+            <img [src]="(getShowdownFront(pokemon2()) ? getShowdownFront(pokemon2()) : pokemon2()?.sprites?.front_default)"
+                alt="pokemon2" class="battle-sprite-opponent" (click)="pokemon2() && openModal(pokemon2()!)"
+                style="cursor:pointer;" />
+
+        </div>
+
+        <div class="battle-player">
+            <img [src]="(getShowdownBack(pokemon1()) ? getShowdownBack(pokemon1()) : pokemon1()?.sprites?.front_default)"
+                alt="pokemon1" class="battle-sprite-player" (click)="pokemon1() && openModal(pokemon1()!)"
+                style="cursor:pointer;" />
+
+
+            @if (!pokemon2Moves().length) {
+            <li class="battle-moves-error">Nessuna mossa disponibile</li>
+            }
+
+
+
+            <!-- Barra HP Pokemon 1 -->
+            <div class="battle-hp-container battle-hp-container--player">
+                <div class="battle-hp-container__label">{{ pokemon1()?.name }}: {{ getHpPercentage(pokemon1CurrentHp(),
+                    pokemon1()) }}%</div>
+                <div class="battle-hp-container__bar">
+                    <div class="battle-hp-container__bar-fill"
+                        [class]="'battle-hp-container__bar-fill--' + getHpBarClass(getHpPercentage(pokemon1CurrentHp(), pokemon1()))"
+                        [style.width.%]="getHpPercentage(pokemon1CurrentHp(), pokemon1())"></div>
+                </div>
+                <div class="battle-hp-container__value">{{ pokemon1CurrentHp() }} / {{ getHpBaseStat(pokemon1()) }} HP
+                </div>
+
+            </div>
+        </div>
+    </div>
+    }
+    @if (!isLoading() && (!pokemon1() || !pokemon2())) {
+    <div class="battle-error">
+        <p>Impossibile caricare i Pokémon. Riprova.</p>
+        <button class="battle-btn" (click)="generateBattle()">Riprova</button>
+    </div>
+    }
+
+    @if (showModal() && modalPokemon()) {
+    <div class="pokemon-modal-overlay" (click)="closeModal()">
+        <div class="pokemon-modal" (click)="$event.stopPropagation()">
+            <app-pokemon [pokemonInput]="modalPokemon()"></app-pokemon>
+        </div>
+    </div>
+    }
+
+    @if (showVictoryModal()) {
+    <div class="victory-modal-overlay">
+        <div class="victory-modal">
+            <img *ngIf="victorySprite" [src]="victorySprite" alt="Vincitore" class="victory-sprite" />
+            <div class="victory-text">{{ victoryText }}</div>
+            <button class="battle-btn" (click)="generateBattle(); showVictoryModal.set(false);">Nuova Battaglia</button>
+        </div>
+    </div>
+    }
+
+    @if (turnState() === 'choose1') {
+    <div class="battle-moves-container battle-moves-container--player">
+        <h4>Mosse di {{ pokemon1()?.name }}</h4>
+        <ul class="battle-moves-list">
+            @for (move of pokemon1Moves(); track move.name) {
+            <li class="battle-moves-item">
+                <button class="move-btn type-{{ move.type?.name ?? 'unknown' }}" (click)="onSelectMove1(move)"
+                    [disabled]="pokemon1MovePP()[move.name] === 0">
+                    <span class="move-btn__name">{{ move.name }}</span>
+                    <div class="move-btn__stats">
+                        <span class="battle-moves-type">{{ move.type?.name ?? '-' }}</span>
+                        <span class="battle-moves-power">Pwr: {{ move.power ?? '-' }}</span>
+                        <span class="battle-moves-accuracy">Acc: {{ move.accuracy ?? '-' }}</span>
+                        <span class="battle-moves-pp">PP: {{ pokemon1MovePP()[move.name] ?? '-' }}</span>
+                    </div>
+                </button>
+            </li>
+            }
+            @if (!pokemon1Moves().length) {
+            <li class="battle-moves-error">Nessuna mossa disponibile</li>
+            }
+        </ul>
+    </div>
+    }
+    @if (turnState() === 'choose2') {
+    <div class="battle-moves-container battle-moves-container--opponent">
+        <h4>Mosse di {{ pokemon2()?.name }}</h4>
+        <ul class="battle-moves-list">
+            @for (move of pokemon2Moves(); track move.name) {
+            <li class="battle-moves-item">
+                <button class="move-btn type-{{ move.type?.name ?? 'unknown' }}" (click)="onSelectMove2(move)"
+                    [disabled]="pokemon2MovePP()[move.name] === 0">
+                    <span class="move-btn__name">{{ move.name }}</span>
+                    <div class="move-btn__stats">
+                        <span class="battle-moves-type">{{ move.type?.name ?? '-' }}</span>
+                        <span class="battle-moves-power">Pwr: {{ move.power ?? '-' }}</span>
+                        <span class="battle-moves-accuracy">Acc: {{ move.accuracy ?? '-' }}</span>
+                        <span class="battle-moves-pp">PP: {{ pokemon2MovePP()[move.name] ?? '-' }}</span>
+                    </div>
+                </button>
+            </li>
+            }
+            @if (!pokemon2Moves().length) {
+            <li class="battle-moves-error">Nessuna mossa disponibile</li>
+            }
+        </ul>
+    </div>
+    }
+</div>

@@ -1,0 +1,550 @@
+// Lista mosse orizzontale e responsive
+.battle-moves-list {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    justify-content: center;
+    align-items: center;
+    padding: 0.5em 0;
+    margin: 0;
+    list-style: none;
+    overflow-x: auto;
+    max-width: 95vw;
+}
+
+.battle-moves-item {
+    display: flex;
+    align-items: center;
+    padding: 0;
+    margin: 0;
+}
+
+.battle-moves-container {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto 0.5em auto;
+    text-align: center;
+}
+
+// Colorazione bottoni mosse in base al tipo
+.move-btn {
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 0.7em 1.2em;
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0.3em 0.5em 0.3em 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
+    cursor: pointer;
+    transition: filter 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7em;
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    min-width: 120px;
+    min-height: 56px;
+    padding: 0.7em 1.2em 0.5em 1.2em;
+}
+
+.move-btn:active,
+.move-btn:focus {
+    filter: brightness(0.95);
+}
+
+// Tipi principali (aggiungi altri se vuoi)
+.move-btn.type-fire {
+    background: linear-gradient(90deg, #fd7d24, #ffb97a);
+}
+
+.move-btn.type-water {
+    background: linear-gradient(90deg, #4592c4, #7ecbff);
+}
+
+.move-btn.type-grass {
+    background: linear-gradient(90deg, #9bcc50, #b6e89e);
+    color: #234;
+}
+
+.move-btn.type-electric {
+    background: linear-gradient(90deg, #eed535, #fffac0);
+    color: #665c00;
+}
+
+.move-btn.type-ice {
+    background: linear-gradient(90deg, #51c4e7, #b3f1ff);
+    color: #234;
+}
+
+.move-btn.type-fighting {
+    background: linear-gradient(90deg, #d56723, #ffbfa3);
+}
+
+.move-btn.type-poison {
+    background: linear-gradient(90deg, #b97fc9, #e0b3f7);
+}
+
+.move-btn.type-ground {
+    background: linear-gradient(90deg, #f7de3f, #ab9842);
+    color: #665c00;
+}
+
+.move-btn.type-flying {
+    background: linear-gradient(90deg, #3dc7ef, #bdb9b8);
+    color: #234;
+}
+
+.move-btn.type-psychic {
+    background: linear-gradient(90deg, #f366b9, #fcb3e6);
+}
+
+.move-btn.type-bug {
+    background: linear-gradient(90deg, #729f3f, #d1e7b7);
+    color: #234;
+}
+
+.move-btn.type-rock {
+    background: linear-gradient(90deg, #a38c21, #e2d9a3);
+    color: #234;
+}
+
+.move-btn.type-ghost {
+    background: linear-gradient(90deg, #7b62a3, #c3b3e6);
+}
+
+.move-btn.type-dragon {
+    background: linear-gradient(90deg, #53a4cf, #f16e57);
+}
+
+.move-btn.type-dark {
+    background: linear-gradient(90deg, #707070, #b3b3b3);
+}
+
+.move-btn.type-steel {
+    background: linear-gradient(90deg, #9eb7b8, #d3e3e5);
+    color: #234;
+}
+
+.move-btn.type-fairy {
+    background: linear-gradient(90deg, #fdb9e9, #fff0fa);
+    color: #234;
+}
+
+.move-btn.type-normal {
+    background: linear-gradient(90deg, #a4acaf, #e0e0e0);
+    color: #234;
+}
+
+.move-btn.type-unknown {
+    background: #888;
+}
+
+// Arena più lunga e spaziosa
+.battle-arena-classic {
+    position: relative;
+    width: 100%;
+    min-height: 600px;
+    margin: 3em auto 2em auto;
+    max-width: 900px;
+    background: linear-gradient(180deg, #e3e3e3 60%, #b3b3b3 100%);
+    border-radius: 32px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.13);
+}
+
+.battle-opponent {
+    position: absolute;
+    top: 32px;
+    right: 48px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.battle-sprite-opponent {
+    width: 140px;
+    height: 140px;
+    filter: brightness(0.95);
+}
+
+.battle-player {
+    position: absolute;
+    bottom: 32px;
+    left: 48px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.battle-sprite-player {
+    width: 200px;
+    height: 200px;
+    filter: brightness(1.05);
+}
+
+// Modale Pokémon
+.pokemon-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pokemon-modal {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    padding: 0;
+    max-width: 420px;
+    width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    z-index: 1001;
+}
+
+.pokemon-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.pokemon-modal-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.pokemon-modal-close {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #555;
+}
+
+.pokemon-modal-close:hover {
+    color: #000;
+}
+
+.pokemon-modal-content {
+    padding: 1.5rem;
+}
+
+.pokemon-modal-section {
+    margin-bottom: 1.5rem;
+}
+
+.pokemon-modal-section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+.pokemon-modal-section-content {
+    font-size: 1rem;
+    color: #333;
+}
+
+.pokemon-modal-section-content ul {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+}
+
+.pokemon-modal-section-content li {
+    margin-bottom: 0.5rem;
+}
+
+.pokemon-modal-section-content li:last-child {
+    margin-bottom: 0;
+}
+
+.pokemon-modal-sprite {
+    display: block;
+    margin: 0 auto 1rem auto;
+    width: 150px;
+    height: 150px;
+}
+
+.pokemon-modal-stat {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.pokemon-modal-stat:last-child {
+    margin-bottom: 0;
+}
+
+.pokemon-modal-stat-name {
+    font-weight: 600;
+}
+
+.pokemon-modal-stat-value {
+    font-weight: 700;
+}
+
+.pokemon-modal-type {
+    display: inline-block;
+    background: #eee;
+    border-radius: 12px;
+    padding: 0.25rem 0.75rem;
+    margin-right: 0.5rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.pokemon-modal-type:last-child {
+    margin-right: 0;
+}
+
+.hp-bar-container {
+    width: 150px;
+    height: 16px;
+    background: #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.battle-hp-bar-fill {
+    height: 100%;
+    background: #4caf50;
+    transition: width 0.3s ease;
+}
+
+.battle-hp-bar-fill.low {
+    background: #ff9800;
+}
+
+.battle-hp-bar-fill.critical {
+    background: #f44336;
+}
+
+.move-btn__name {
+    display: block;
+    font-size: 1.1em;
+    font-weight: 700;
+    margin-bottom: 0.25em;
+    text-align: center;
+    width: 100%;
+}
+
+.move-btn__stats {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.95em;
+    margin-top: 0.1em;
+    color: #f8f8f8;
+    text-shadow: 0 1px 2px #2228;
+}
+
+.battle-moves-type {
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.battle-moves-power,
+.battle-moves-accuracy,
+.battle-moves-pp {
+    font-weight: 400;
+}
+
+.battle-moves-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+
+}
+
+.battle-moves-item:hover {
+    transform: translateY(-2px);
+}
+
+// Modale Vittoria
+.victory-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeInVictory 0.4s;
+}
+
+@keyframes fadeInVictory {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.victory-modal {
+    background: linear-gradient(135deg, #fffbe6 60%, #ffe0b2 100%);
+    border-radius: 32px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    padding: 2.5em 2em 2em 2em;
+    min-width: 320px;
+    max-width: 90vw;
+    text-align: center;
+    position: relative;
+    border: 4px solid #ffd54f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.2em;
+}
+
+.victory-sprite {
+    width: 160px;
+    height: 160px;
+    margin-bottom: 0.5em;
+    filter: drop-shadow(0 8px 24px #ffecb3cc);
+    animation: bounceVictory 1.2s infinite alternate;
+}
+
+@keyframes bounceVictory {
+    0% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(-18px);
+    }
+}
+
+.victory-text {
+    font-size: 2.1em;
+    font-weight: 800;
+    color: #ff9800;
+    text-shadow: 0 2px 8px #fff7, 0 1px 0 #fff;
+    margin-bottom: 0.5em;
+    letter-spacing: 1px;
+}
+
+.victory-modal .battle-btn {
+    margin-top: 1.2em;
+    font-size: 1.1em;
+    padding: 0.7em 2.2em;
+    background: linear-gradient(90deg, #ffd54f, #ffb300);
+    color: #7a4a00;
+    border: none;
+    border-radius: 16px;
+    font-weight: 700;
+    box-shadow: 0 2px 8px #ffecb3cc;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.victory-modal .battle-btn:hover {
+    background: linear-gradient(90deg, #ffb300, #ffd54f);
+    color: #ff9800;
+}
+
+// Barre HP
+.battle-hp-container {
+    border-radius: 16px;
+    padding: 1rem;
+    min-width: 250px;
+    max-width: 300px;
+
+    // Versione per opponent (in alto a destra)
+    &--opponent {
+        align-self: flex-start;
+    }
+
+    // Versione per player (in basso a sinistra)
+    &--player {
+        align-self: flex-start;
+    }
+
+    &__label {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        text-transform: capitalize;
+        color: #333;
+    }
+
+    &__bar {
+        width: 100%;
+        height: 20px;
+        background: #e0e0e0;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 0.5rem;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    &__bar-fill {
+        height: 100%;
+        transition: width 0.4s ease, background 0.3s ease;
+        border-radius: 12px;
+
+        // Verde: HP > 50%
+        &--healthy {
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+        }
+
+        // Arancione: HP tra 21% e 50%
+        &--warning {
+            background: linear-gradient(90deg, #ff9800, #ffb74d);
+        }
+
+        // Rosso: HP <= 20%
+        &--critical {
+            background: linear-gradient(90deg, #f44336, #e57373);
+        }
+    }
+
+    &__value {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 0.75rem;
+    }
+
+    &__btn {
+        background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        width: 100%;
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        &:active {
+            transform: translateY(0);
+        }
+    }
+}
