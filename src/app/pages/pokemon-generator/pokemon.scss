@@ -112,6 +112,28 @@ $pokemon-types: (
             font-size: 20px;
             font-family: 'Science Gothic';
             margin: 3px 0;
+
+            &.stat-boosted {
+                color: #2e7d32;
+            }
+
+            &.stat-lowered {
+                color: #c62828;
+            }
+
+            .stat-change {
+                font-size: 0.85em;
+                font-weight: 700;
+                margin-left: 0.3em;
+
+                &.positive {
+                    color: #2e7d32;
+                }
+
+                &.negative {
+                    color: #c62828;
+                }
+            }
         }
 
         &__bst {

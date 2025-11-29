@@ -13,8 +13,14 @@
         <h3 class="subtitle">Stats:</h3>
         <ul class="pokemon-card__stats">
             @for (stat of p.stats; track stat.stat.name) {
-            <li class="pokemon-card__stats-item"><strong>{{ stat.stat.name }}</strong>: {{ stat.stat.name === 'hp' ?
-                (stat.base_stat * 2 + 110) : (stat.base_stat * 2 + 5) }}</li>
+            <li class="pokemon-card__stats-item" [class.stat-boosted]="(currentStatChanges[stat.stat.name] ?? 0) > 0" [class.stat-lowered]="(currentStatChanges[stat.stat.name] ?? 0) < 0">
+                <strong>{{ stat.stat.name }}</strong>: {{ getModifiedStat(stat.base_stat, stat.stat.name) }}
+                @if (currentStatChanges[stat.stat.name]) {
+                <span class="stat-change" [class.positive]="currentStatChanges[stat.stat.name] > 0" [class.negative]="currentStatChanges[stat.stat.name] < 0">
+                    ({{ currentStatChanges[stat.stat.name] > 0 ? '+' : '' }}{{ currentStatChanges[stat.stat.name] }} stage)
+                </span>
+                }
+            </li>
             }
         </ul>
         } @else {

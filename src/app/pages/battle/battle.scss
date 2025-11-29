@@ -147,7 +147,7 @@
     position: relative;
     width: 100%;
     min-height: 600px;
-    margin: 3em auto 2em auto;
+    margin: 0.8em auto 2em auto;
     max-width: 900px;
     background: linear-gradient(180deg, #e3e3e3 60%, #b3b3b3 100%);
     border-radius: 32px;
@@ -546,5 +546,47 @@
         &:active {
             transform: translateY(0);
         }
+    }
+}
+
+// Condizioni di stato
+.battle-status {
+    display: inline-block;
+    padding: 0.25rem 0.6rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 0.5rem;
+
+    &--paralysis {
+        background: linear-gradient(90deg, #f7dc6f, #f4d03f);
+        color: #7d6608;
+    }
+
+    &--burn {
+        background: linear-gradient(90deg, #e74c3c, #c0392b);
+        color: #fff;
+    }
+
+    &--poison {
+        background: linear-gradient(90deg, #9b59b6, #8e44ad);
+        color: #fff;
+    }
+
+    &--sleep {
+        background: linear-gradient(90deg, #85929e, #5d6d7e);
+        color: #fff;
+    }
+
+    &--freeze {
+        background: linear-gradient(90deg, #85c1e9, #5dade2);
+        color: #1a5276;
+    }
+
+    &--confusion {
+        background: linear-gradient(90deg, #f1948a, #e74c3c);
+        color: #fff;
     }
 }

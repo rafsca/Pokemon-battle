@@ -35,6 +35,21 @@ export class BattleComponent {
   pokemon1MovePP = signal<{ [moveName: string]: number }>({});
   pokemon2MovePP = signal<{ [moveName: string]: number }>({});
 
+  // Modifiche alle statistiche (stage da -6 a +6)
+  pokemon1StatChanges = signal<{ [stat: string]: number }>({});
+  pokemon2StatChanges = signal<{ [stat: string]: number }>({});
+
+  // Condizioni di stato: paralysis, burn, poison, sleep, freeze, confusion
+  pokemon1Status = signal<string | null>(null);
+  pokemon2Status = signal<string | null>(null);
+  pokemon1SleepTurns = signal<number>(0);
+  pokemon2SleepTurns = signal<number>(0);
+  pokemon1ConfusionTurns = signal<number>(0);
+  pokemon2ConfusionTurns = signal<number>(0);
+
+  // Per mostrare le stat correnti nel modale
+  modalPokemonStats = signal<{ [key: string]: number }>({});
+
   // Modale vittoria
   showVictoryModal = signal(false);
   victorySprite: string | null = null;
@@ -67,6 +82,16 @@ export class BattleComponent {
         this.pokemon2.set(poke2);
         this.pokemon1CurrentHp.set(this.getHpBaseStat(poke1));
         this.pokemon2CurrentHp.set(this.getHpBaseStat(poke2));
+
+        // Reset stat changes e status
+        this.pokemon1StatChanges.set({});
+        this.pokemon2StatChanges.set({});
+        this.pokemon1Status.set(null);
+        this.pokemon2Status.set(null);
+        this.pokemon1SleepTurns.set(0);
+        this.pokemon2SleepTurns.set(0);
+        this.pokemon1ConfusionTurns.set(0);
+        this.pokemon2ConfusionTurns.set(0);
 
         const moves1 = this.pokemonRandomMoves(poke1, 4) as Move[];
         const moves2 = this.pokemonRandomMoves(poke2, 4) as Move[];
@@ -135,6 +160,12 @@ export class BattleComponent {
 
   openModal(pokemon: Pokemon) {
     this.modalPokemon.set(pokemon);
+    // Passa le stat changes del pokemon selezionato
+    if (pokemon === this.pokemon1()) {
+      this.modalPokemonStats.set(this.pokemon1StatChanges());
+    } else {
+      this.modalPokemonStats.set(this.pokemon2StatChanges());
+    }
     this.showModal.set(true);
   }
 
@@ -172,6 +203,20 @@ export class BattleComponent {
     return 'healthy';
   }
 
+  // Converte lo status nella sua abbreviazione
+  getStatusAbbreviation(status: string | null): string {
+    if (!status) return '';
+    const abbreviations: { [key: string]: string } = {
+      'paralysis': 'PAR',
+      'burn': 'BRN',
+      'poison': 'PSN',
+      'sleep': 'SLP',
+      'freeze': 'FRZ',
+      'confusion': 'CNF'
+    };
+    return abbreviations[status] ?? status.toUpperCase();
+  }
+
   // Decrementa i PP e blocca la mossa se finiti
   onSelectMove1(move: SelectedMove) {
     const ppObj = { ...this.pokemon1MovePP() };
@@ -196,24 +241,272 @@ export class BattleComponent {
   getSpeed100(pokemon: Pokemon | undefined): number {
     if (!pokemon) return 0;
     const base = pokemon.stats.find(s => s.stat.name === 'speed')?.base_stat ?? 50;
-    return base * 2 + 5;
+    const statChanges = pokemon === this.pokemon1() ? this.pokemon1StatChanges() : this.pokemon2StatChanges();
+    const modifier = this.getStatModifier(statChanges['speed'] ?? 0);
+    
+    // Paralisi riduce la velocità del 50%
+    const status = pokemon === this.pokemon1() ? this.pokemon1Status() : this.pokemon2Status();
+    const paralysisModifier = status === 'paralysis' ? 0.5 : 1;
+    
+    return Math.floor((base * 2 + 5) * modifier * paralysisModifier);
+  }
+
+  // Calcola il moltiplicatore per uno stage di stat (-6 a +6)
+  getStatModifier(stage: number): number {
+    const clampedStage = Math.max(-6, Math.min(6, stage));
+    if (clampedStage >= 0) {
+      return (2 + clampedStage) / 2;
+    } else {
+      return 2 / (2 - clampedStage);
+    }
+  }
+
+  // Determina se la mossa colpisce se stessi o l'avversario
+  // Ritorna 'self' se colpisce l'utilizzatore, 'opponent' se colpisce l'avversario
+  getMoveTarget(move: SelectedMove): 'self' | 'opponent' {
+    const targetName = move.target?.name ?? '';
+    
+    // Target che colpiscono l'utilizzatore
+    const selfTargets = [
+      'user',
+      'user-and-allies', 
+      'users-field',
+      'all-allies',
+      'user-or-ally'
+    ];
+    
+    if (selfTargets.includes(targetName)) {
+      return 'self';
+    }
+    
+    return 'opponent';
+  }
+
+  // Applica le modifiche alle statistiche dalla mossa
+  applyStatChanges(move: SelectedMove, attacker: Pokemon | undefined, defender: Pokemon | undefined) {
+    if (!move.stat_changes || !Array.isArray(move.stat_changes) || move.stat_changes.length === 0) return;
+
+    // Ottieni la probabilità di applicare i cambiamenti stat
+    // stat_chance = 0 significa 100% (mosse di stato pure come Swords Dance)
+    // stat_chance > 0 significa quella percentuale (es. 10% per effetti secondari)
+    const statChance = move.meta?.stat_chance ?? 0;
+    const chance = statChance === 0 ? 100 : statChance;
+    
+    // Verifica se l'effetto si attiva
+    if (Math.random() * 100 >= chance) return;
+
+    const isAttackerPokemon1 = attacker === this.pokemon1();
+    const moveTarget = this.getMoveTarget(move);
+    const metaCategory = move.meta?.category?.name ?? '';
+    
+    for (const change of move.stat_changes) {
+      const statName = change.stat?.name;
+      const changeAmount = change.change ?? 0;
+      if (!statName || changeAmount === 0) continue;
+
+      let targetSignal: ReturnType<typeof signal<{ [stat: string]: number }>>;
+      
+      // Logica per determinare chi riceve lo stat change basata su meta.category:
+      // - "damage+lower" = danno + abbassa stat del BERSAGLIO (es. Bug Buzz, Psychic, Shadow Ball)
+      // - "damage+raise" = danno + modifica stat dell'UTILIZZATORE (es. Close Combat abbassa le proprie difese)
+      // - "net-good-stats" = mosse di stato che alzano le proprie stat (Swords Dance, Calm Mind)
+      // - "damage" con stat_changes = effetto secondario sul bersaglio
+      // Per mosse senza meta.category, usa il target della mossa
+      
+      let applySelf: boolean;
+      
+      if (moveTarget === 'self') {
+        // Mossa con target utente (Swords Dance, Calm Mind, ecc.)
+        applySelf = true;
+      } else if (metaCategory === 'damage+raise') {
+        // Mosse come Close Combat: fanno danno ma modificano le stat dell'utilizzatore
+        applySelf = true;
+      } else if (metaCategory === 'damage+lower') {
+        // Mosse come Bug Buzz, Psychic: fanno danno e abbassano stat del bersaglio
+        applySelf = false;
+      } else if (metaCategory === 'net-good-stats') {
+        // Mosse di potenziamento (Swords Dance, ecc.)
+        applySelf = true;
+      } else {
+        // Default: segui il target della mossa
+        applySelf = false;
+      }
+      
+      if (applySelf) {
+        targetSignal = isAttackerPokemon1 ? this.pokemon1StatChanges : this.pokemon2StatChanges;
+      } else {
+        targetSignal = isAttackerPokemon1 ? this.pokemon2StatChanges : this.pokemon1StatChanges;
+      }
+
+      const currentChanges = { ...targetSignal() };
+      const currentStage = currentChanges[statName] ?? 0;
+      const newStage = Math.max(-6, Math.min(6, currentStage + changeAmount));
+      currentChanges[statName] = newStage;
+      targetSignal.set(currentChanges);
+    }
+  }
+
+  // Applica condizione di stato
+  applyStatusCondition(move: SelectedMove, attacker: Pokemon | undefined, defender: Pokemon | undefined) {
+    const ailment = move.meta?.ailment?.name;
+    const ailmentChance = move.meta?.ailment_chance ?? 0;
+    
+    // Se la mossa non ha ailment o è 'none', esci
+    if (!ailment || ailment === 'none') return;
+
+    // Verifica la probabilità (0 significa 100% per mosse di stato pure)
+    const chance = ailmentChance === 0 ? 100 : ailmentChance;
+    if (Math.random() * 100 > chance) return;
+
+    const isAttackerPokemon1 = attacker === this.pokemon1();
+    
+    // Determina il target per la condizione di stato
+    const moveTarget = this.getMoveTarget(move);
+    let targetStatusSignal: ReturnType<typeof signal<string | null>>;
+    
+    // Le condizioni di stato negative vanno sempre sull'avversario (a meno che non sia Rest)
+    if (moveTarget === 'self' && ailment === 'sleep' && move.name === 'rest') {
+      // Rest addormenta se stessi per curarsi
+      targetStatusSignal = isAttackerPokemon1 ? this.pokemon1Status : this.pokemon2Status;
+    } else {
+      // Tutte le altre condizioni di stato vanno sull'avversario
+      targetStatusSignal = isAttackerPokemon1 ? this.pokemon2Status : this.pokemon1Status;
+    }
+    
+    // Non applicare se già ha uno status (eccetto confusione che può essere aggiunta)
+    if (targetStatusSignal() && ailment !== 'confusion') return;
+
+    switch (ailment) {
+      case 'paralysis':
+      case 'burn':
+      case 'poison':
+      case 'freeze':
+        targetStatusSignal.set(ailment);
+        break;
+      case 'sleep':
+        targetStatusSignal.set('sleep');
+        // Inizia il conteggio turni da 0, incrementerà in canAct()
+        if (isAttackerPokemon1) {
+          this.pokemon2SleepTurns.set(0);
+        } else {
+          this.pokemon1SleepTurns.set(0);
+        }
+        break;
+      case 'confusion':
+        const confTurns = Math.floor(Math.random() * 4) + 1; // 1-4 turni
+        if (isAttackerPokemon1) {
+          this.pokemon2ConfusionTurns.set(confTurns);
+        } else {
+          this.pokemon1ConfusionTurns.set(confTurns);
+        }
+        break;
+    }
+  }
+
+  // Verifica se il Pokémon può agire (status effects)
+  canAct(pokemon: Pokemon | undefined): { canAct: boolean, damage: number } {
+    const isPokemon1 = pokemon === this.pokemon1();
+    const status = isPokemon1 ? this.pokemon1Status() : this.pokemon2Status();
+    const sleepTurns = isPokemon1 ? this.pokemon1SleepTurns : this.pokemon2SleepTurns;
+    const confusionTurns = isPokemon1 ? this.pokemon1ConfusionTurns : this.pokemon2ConfusionTurns;
+    const statusSignal = isPokemon1 ? this.pokemon1Status : this.pokemon2Status;
+
+    let selfDamage = 0;
+
+    // Controllo sonno: 25% di probabilità di svegliarsi ogni turno, max 3 turni
+    if (status === 'sleep') {
+      const turns = sleepTurns();
+      // Se ha dormito 3 turni, si sveglia automaticamente
+      if (turns >= 3) {
+        statusSignal.set(null);
+        sleepTurns.set(0);
+        // Si sveglia ma può agire questo turno
+      } else if (Math.random() < 0.25) {
+        // 25% di probabilità di svegliarsi
+        statusSignal.set(null);
+        sleepTurns.set(0);
+        // Si sveglia ma può agire questo turno
+      } else {
+        // Resta addormentato, incrementa il contatore
+        sleepTurns.set(turns + 1);
+        return { canAct: false, damage: 0 };
+      }
+    }
+
+    // Controllo congelamento (20% di scongelarsi)
+    if (status === 'freeze') {
+      if (Math.random() < 0.2) {
+        // Si scongela e può agire
+        statusSignal.set(null);
+      } else {
+        // Resta congelato
+        return { canAct: false, damage: 0 };
+      }
+    }
+
+    // Controllo paralisi (25% di non agire)
+    if (status === 'paralysis') {
+      if (Math.random() < 0.25) {
+        return { canAct: false, damage: 0 };
+      }
+    }
+
+    // Controllo confusione
+    if (confusionTurns() > 0) {
+      confusionTurns.set(confusionTurns() - 1);
+      if (Math.random() < 0.33) {
+        // Si colpisce da solo: 40 power fisico
+        const atk = pokemon?.stats.find(s => s.stat.name === 'attack')?.base_stat ?? 50;
+        const def = pokemon?.stats.find(s => s.stat.name === 'defense')?.base_stat ?? 50;
+        selfDamage = Math.max(1, Math.floor((40 + atk) - def));
+        return { canAct: false, damage: selfDamage };
+      }
+    }
+
+    return { canAct: true, damage: 0 };
+  }
+
+  // Applica danni da status a fine turno
+  applyEndTurnStatusDamage(pokemon: Pokemon | undefined): number {
+    const isPokemon1 = pokemon === this.pokemon1();
+    const status = isPokemon1 ? this.pokemon1Status() : this.pokemon2Status();
+    const maxHp = this.getHpBaseStat(pokemon);
+
+    if (status === 'burn' || status === 'poison') {
+      return Math.floor(maxHp / 16); // 1/16 del massimo HP
+    }
+    return 0;
   }
 
   calculateCustomDamage(attacker: Pokemon | undefined, defender: Pokemon | undefined, move: SelectedMove): number {
     if (!attacker || !defender) return 0;
     if (!move.power || move.power === 0) return 0;
+    
     const isSpecial = move.damage_class?.name === 'special';
-    const atk = isSpecial
-      ? attacker.stats.find(s => s.stat.name === 'special-attack')?.base_stat ?? 50
-      : attacker.stats.find(s => s.stat.name === 'attack')?.base_stat ?? 50;
-    const def = isSpecial
-      ? defender.stats.find(s => s.stat.name === 'special-defense')?.base_stat ?? 50
-      : defender.stats.find(s => s.stat.name === 'defense')?.base_stat ?? 50;
+    const attackerStatChanges = attacker === this.pokemon1() ? this.pokemon1StatChanges() : this.pokemon2StatChanges();
+    const defenderStatChanges = defender === this.pokemon1() ? this.pokemon1StatChanges() : this.pokemon2StatChanges();
+    
+    const atkStatName = isSpecial ? 'special-attack' : 'attack';
+    const defStatName = isSpecial ? 'special-defense' : 'defense';
+    
+    const baseAtk = attacker.stats.find(s => s.stat.name === atkStatName)?.base_stat ?? 50;
+    const baseDef = defender.stats.find(s => s.stat.name === defStatName)?.base_stat ?? 50;
+    
+    const atkModifier = this.getStatModifier(attackerStatChanges[atkStatName] ?? 0);
+    const defModifier = this.getStatModifier(defenderStatChanges[defStatName] ?? 0);
+    
+    const atk = Math.floor(baseAtk * atkModifier);
+    const def = Math.floor(baseDef * defModifier);
+    
     const power = move.power;
     const stab = attacker.types.some(t => t.type.name === move.type?.name) ? 1.5 : 1;
     const typeMultiplier = this.battleService.calculateTypeModifier(move.type?.name ?? '', defender.types.map(t => t.type.name));
-    // Formula richiesta
-    const damage = Math.max(1, Math.floor((power + (atk * stab * typeMultiplier)) - def));
+    
+    // Riduzione danno da bruciatura per mosse fisiche
+    const attackerStatus = attacker === this.pokemon1() ? this.pokemon1Status() : this.pokemon2Status();
+    const burnModifier = (attackerStatus === 'burn' && !isSpecial) ? 0.5 : 1;
+    
+    const damage = Math.max(1, Math.floor((power + (atk * stab * typeMultiplier)) * burnModifier - def));
     return damage;
   }
 
@@ -222,12 +515,16 @@ export class BattleComponent {
     const prio1 = this.selectedMove1?.priority ?? 0;
     const prio2 = this.selectedMove2?.priority ?? 0;
     let first: Pokemon | undefined, second: Pokemon | undefined, moveFirst: SelectedMove | null, moveSecond: SelectedMove | null;
+    let isFirstPokemon1: boolean;
+    
     if (prio1 > prio2) {
       first = this.pokemon1(); second = this.pokemon2();
       moveFirst = this.selectedMove1; moveSecond = this.selectedMove2;
+      isFirstPokemon1 = true;
     } else if (prio2 > prio1) {
       first = this.pokemon2(); second = this.pokemon1();
       moveFirst = this.selectedMove2; moveSecond = this.selectedMove1;
+      isFirstPokemon1 = false;
     } else {
       // Se priorità uguale, decide la velocità
       const speed1 = this.getSpeed100(this.pokemon1());
@@ -235,33 +532,81 @@ export class BattleComponent {
       if (speed1 >= speed2) {
         first = this.pokemon1(); second = this.pokemon2();
         moveFirst = this.selectedMove1; moveSecond = this.selectedMove2;
+        isFirstPokemon1 = true;
       } else {
         first = this.pokemon2(); second = this.pokemon1();
         moveFirst = this.selectedMove2; moveSecond = this.selectedMove1;
+        isFirstPokemon1 = false;
       }
     }
-    // Applica danno al primo attacco
-    let hpSecond = this[second === this.pokemon1() ? 'pokemon1CurrentHp' : 'pokemon2CurrentHp']();
-    hpSecond -= this.calculateCustomDamage(first, second, moveFirst!);
-    hpSecond = Math.max(0, hpSecond);
-    this[second === this.pokemon1() ? 'pokemon1CurrentHp' : 'pokemon2CurrentHp'].set(hpSecond);
 
-    // Timeout tra il primo e il secondo attacco
-    if (hpSecond > 0) {
-      setTimeout(() => {
-        let hpFirst = this[first === this.pokemon1() ? 'pokemon1CurrentHp' : 'pokemon2CurrentHp']();
-        hpFirst -= this.calculateCustomDamage(second, first, moveSecond!);
-        hpFirst = Math.max(0, hpFirst);
-        this[first === this.pokemon1() ? 'pokemon1CurrentHp' : 'pokemon2CurrentHp'].set(hpFirst);
+    // Primo attacco
+    const firstCanAct = this.canAct(first);
+    let hpSecond = (isFirstPokemon1 ? this.pokemon2CurrentHp : this.pokemon1CurrentHp)();
+    let hpFirst = (isFirstPokemon1 ? this.pokemon1CurrentHp : this.pokemon2CurrentHp)();
 
-        // Mostra modale vittoria se un Pokémon va KO
-        this.checkVictoryAndReset();
-      }, 700); // 700ms di attesa tra i due attacchi
-    } else {
-      // Mostra modale vittoria se un Pokémon va KO
-      this.checkVictoryAndReset();
+    if (firstCanAct.canAct) {
+      // Applica danno
+      hpSecond -= this.calculateCustomDamage(first, second, moveFirst!);
+      hpSecond = Math.max(0, hpSecond);
+      (isFirstPokemon1 ? this.pokemon2CurrentHp : this.pokemon1CurrentHp).set(hpSecond);
+      
+      // Applica effetti della mossa (stat changes e status)
+      this.applyStatChanges(moveFirst!, first, second);
+      this.applyStatusCondition(moveFirst!, first, second);
+    } else if (firstCanAct.damage > 0) {
+      // Danno da confusione a se stesso
+      hpFirst -= firstCanAct.damage;
+      hpFirst = Math.max(0, hpFirst);
+      (isFirstPokemon1 ? this.pokemon1CurrentHp : this.pokemon2CurrentHp).set(hpFirst);
     }
 
+    // Controlla KO dopo primo attacco
+    if (hpSecond <= 0 || hpFirst <= 0) {
+      this.applyEndTurnDamage();
+      this.checkVictoryAndReset();
+      return;
+    }
+
+    // Timeout tra il primo e il secondo attacco
+    setTimeout(() => {
+      const secondCanAct = this.canAct(second);
+      let currentHpFirst = (isFirstPokemon1 ? this.pokemon1CurrentHp : this.pokemon2CurrentHp)();
+      let currentHpSecond = (isFirstPokemon1 ? this.pokemon2CurrentHp : this.pokemon1CurrentHp)();
+
+      if (secondCanAct.canAct) {
+        currentHpFirst -= this.calculateCustomDamage(second, first, moveSecond!);
+        currentHpFirst = Math.max(0, currentHpFirst);
+        (isFirstPokemon1 ? this.pokemon1CurrentHp : this.pokemon2CurrentHp).set(currentHpFirst);
+        
+        // Applica effetti della mossa
+        this.applyStatChanges(moveSecond!, second, first);
+        this.applyStatusCondition(moveSecond!, second, first);
+      } else if (secondCanAct.damage > 0) {
+        // Danno da confusione
+        currentHpSecond -= secondCanAct.damage;
+        currentHpSecond = Math.max(0, currentHpSecond);
+        (isFirstPokemon1 ? this.pokemon2CurrentHp : this.pokemon1CurrentHp).set(currentHpSecond);
+      }
+
+      // Applica danni da status a fine turno
+      this.applyEndTurnDamage();
+      
+      // Mostra modale vittoria se un Pokémon va KO
+      this.checkVictoryAndReset();
+    }, 700);
+  }
+
+  // Applica danni da status a fine turno per entrambi i Pokémon
+  private applyEndTurnDamage() {
+    let hp1 = this.pokemon1CurrentHp();
+    let hp2 = this.pokemon2CurrentHp();
+
+    hp1 -= this.applyEndTurnStatusDamage(this.pokemon1());
+    hp2 -= this.applyEndTurnStatusDamage(this.pokemon2());
+
+    this.pokemon1CurrentHp.set(Math.max(0, hp1));
+    this.pokemon2CurrentHp.set(Math.max(0, hp2));
   }
 
   // Funzione di supporto per mostrare la vittoria e resettare il turno

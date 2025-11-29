@@ -16,6 +16,35 @@ import { Router } from '@angular/router';
 })
 export class PokemonComponent implements OnChanges {
     @Input() pokemonInput?: Pokemon;
+    @Input() set statChanges(changes: { [key: string]: number } | undefined) {
+        this.statChangesSignal.set(changes ?? {});
+    }
+    
+    statChangesSignal = signal<{ [key: string]: number }>({});
+    
+    get currentStatChanges() {
+        return this.statChangesSignal();
+    }
+
+    // Calcola il moltiplicatore per uno stage di stat (-6 a +6)
+    getStatModifier(stage: number): number {
+        const clampedStage = Math.max(-6, Math.min(6, stage));
+        if (clampedStage >= 0) {
+            return (2 + clampedStage) / 2;
+        } else {
+            return 2 / (2 - clampedStage);
+        }
+    }
+
+    // Calcola la stat modificata con il moltiplicatore
+    getModifiedStat(baseStat: number, statName: string): number {
+        const stage = this.currentStatChanges[statName] ?? 0;
+        const modifier = this.getStatModifier(stage);
+        // HP usa formula diversa, le altre stat usano base * 2 + 5
+        const effectiveStat = statName === 'hp' ? (baseStat * 2 + 110) : (baseStat * 2 + 5);
+        return Math.floor(effectiveStat * modifier);
+    }
+
     title = signal('pokemon-battle');
     pokemon = signal<Pokemon | undefined>(undefined);
     selectedMoves = signal<SelectedMove[]>([]);
