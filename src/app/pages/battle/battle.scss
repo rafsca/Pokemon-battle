@@ -34,9 +34,7 @@
     gap: 0rem;
     padding: 1rem;
     background: url('../../../../public/gif1.gif') center center/cover no-repeat, linear-gradient(180deg, #0a1a2a 0%, #1a2333 100%);
-    background-attachment: fixed;
-    background-repeat: no-repeat;
-    background-size: cover;
+    min-height: 90vh;
     overflow: hidden;
 }
 
