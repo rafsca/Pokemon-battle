@@ -1,0 +1,127 @@
+.battle-log {
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid #333;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    height: 100%;
+    max-height: 400px;
+}
+
+.battle-log-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 16px;
+    border-bottom: 2px solid #333;
+
+    h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+}
+
+.battle-log-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    /* Custom scrollbar */
+    &::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+
+        &:hover {
+            background: #555;
+        }
+    }
+}
+
+.log-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #999;
+    font-style: italic;
+}
+
+.log-entry {
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+// Stili per tipo di log
+.log-action {
+    background: #e3f2fd;
+    border-left: 3px solid #2196f3;
+    color: #1565c0;
+    font-weight: 600;
+}
+
+.log-damage {
+    background: #ffebee;
+    border-left: 3px solid #f44336;
+    color: #c62828;
+}
+
+.log-status {
+    background: #fff3e0;
+    border-left: 3px solid #ff9800;
+    color: #e65100;
+}
+
+.log-stat {
+    background: #f3e5f5;
+    border-left: 3px solid #9c27b0;
+    color: #6a1b9a;
+}
+
+.log-effect {
+    background: #e8f5e9;
+    border-left: 3px solid #4caf50;
+    color: #2e7d32;
+}
+
+.log-info {
+    background: #f5f5f5;
+    border-left: 3px solid #9e9e9e;
+    color: #424242;
+}
+
+.log-default {
+    background: #fafafa;
+    border-left: 3px solid #ccc;
+    color: #333;
+}

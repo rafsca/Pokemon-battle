@@ -1,3 +1,63 @@
+.battle-moves-container h4 {
+    text-align: center;
+    font-size: 1.3em;
+    font-weight: 800;
+    color: #222;
+    margin-bottom: 0.7em;
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 8px #fff8, 0 1px 0 #fff;
+    background: rgba(255, 255, 255, 0.55);
+    border-radius: 12px;
+    padding: 0.4em 0.8em;
+    display: inline-block;
+    box-shadow: 0 2px 12px #fff5;
+}
+
+.battle-moves-list {
+    background: rgba(255, 255, 255, 0.45);
+    border-radius: 18px;
+    padding: 1.2em 1em 1.5em 1em;
+    margin-bottom: 1.2em;
+    box-shadow: 0 2px 24px #fff6;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1.2em;
+    justify-content: center;
+    align-items: center;
+    max-width: 95vw;
+}
+
+.battle-page {
+    display: flex;
+    flex-direction: column;
+    gap: 0rem;
+    padding: 1rem;
+    background: url('../../../../public/gif1.gif') center center/cover no-repeat, linear-gradient(180deg, #0a1a2a 0%, #1a2333 100%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-size: cover;
+    overflow: hidden;
+}
+
+.battle-container {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 1rem;
+    align-items: start;
+
+    @media (max-width: 1024px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.battle-log-wrapper {
+    position: sticky;
+    top: 1rem;
+    height: fit-content;
+    max-height: calc(100vh - 2rem);
+}
+
 // Lista mosse orizzontale e responsive
 .battle-moves-list {
     display: flex;
@@ -149,7 +209,8 @@
     min-height: 600px;
     margin: 0.8em auto 2em auto;
     max-width: 900px;
-    background: linear-gradient(180deg, #e3e3e3 60%, #b3b3b3 100%);
+    // background: linear-gradient(180deg, #e3e3e3 60%, #b3b3b3 100%);
+    background: url('../../../../public/sfondo.png') center center/cover no-repeat, linear-gradient(180deg, #0a1a2a 60%, #1a2333 100%);
     border-radius: 32px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.13);
 }
@@ -168,6 +229,8 @@
     width: 140px;
     height: 140px;
     filter: brightness(0.95);
+    margin-right: 60px;
+    margin-top: -10px;
 }
 
 .battle-player {
@@ -180,10 +243,45 @@
     gap: 1.5rem;
 }
 
+
 .battle-sprite-player {
     width: 200px;
     height: 200px;
     filter: brightness(1.05);
+    transition: transform 0.25s cubic-bezier(.4, 2, .6, 1), filter 0.15s;
+    margin-bottom: 60px;
+    margin-left: 30px;
+}
+
+.battle-sprite-opponent {
+    width: 140px;
+    height: 140px;
+    filter: brightness(0.95);
+    transition: transform 0.25s cubic-bezier(.4, 2, .6, 1), filter 0.15s;
+}
+
+.sprite-attack {
+    z-index: 2;
+    filter: brightness(1.2) drop-shadow(0 0 16px #fff7);
+    animation: attack-move 0.35s cubic-bezier(.4, 2, .6, 1);
+}
+
+@keyframes attack-move {
+    0% {
+        transform: translateX(0);
+    }
+
+    40% {
+        transform: translateX(var(--attack-x, 0));
+    }
+
+    60% {
+        transform: translateX(var(--attack-x, 0));
+    }
+
+    100% {
+        transform: translateX(0);
+    }
 }
 
 // Modale Pokémon
@@ -484,7 +582,7 @@
         font-weight: 700;
         margin-bottom: 0.5rem;
         text-transform: capitalize;
-        color: #333;
+        color: #ffffff;
     }
 
     &__bar {
@@ -521,7 +619,7 @@
     &__value {
         font-size: 0.9rem;
         font-weight: 600;
-        color: #555;
+        color: #fffdfd;
         margin-bottom: 0.75rem;
     }
 
