@@ -1,11 +1,10 @@
 import { Routes } from '@angular/router';
-import { HomeComponent } from './pages/home/home';
-import { BattleComponent } from './pages/battle/battle';
-import { PokemonComponent } from './pages/pokemon-generator/pokemon';
+import { HomePageComponent } from './features/home/home-page.component';
+import { BattlePageComponent } from './features/battle/battle-page.component';
+import { PokemonGeneratorPageComponent } from './features/pokemon-generator/pokemon-generator-page.component';
 
 export const routes: Routes = [
-    { path: '', component: HomeComponent },
-    { path: 'battle', component: BattleComponent },
-    { path: 'pokemon', component: PokemonComponent },
-
+  { path: '',        component: HomePageComponent },
+  { path: 'battle',  component: BattlePageComponent },
+  { path: 'pokemon', component: PokemonGeneratorPageComponent },
 ];
