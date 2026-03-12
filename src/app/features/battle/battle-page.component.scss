@@ -10,7 +10,7 @@
     padding: 1rem;
     background: url('/gif1.gif') center center / cover no-repeat,
         linear-gradient(180deg, #0a1a2a 0%, #1a2333 100%);
-    min-height: 90vh;
+    min-height: 86vh;
     overflow: hidden;
 }
 
@@ -38,7 +38,7 @@
     position: relative;
     width: 100%;
     min-height: 600px;
-    margin: 0.8em auto 2em auto;
+    margin: 0.8em auto 1em auto;
     max-width: 900px;
     background: url('/sfondo.png') center center / cover no-repeat,
         linear-gradient(180deg, #0a1a2a 60%, #1a2333 100%);
@@ -146,7 +146,7 @@
 
 .battle-moves-item {
     display: flex;
-    align-items: center;
+    align-items: center;    
     padding: 0;
     margin: 0;
 
@@ -159,7 +159,7 @@
 
 .move-btn {
     color: #fff;
-    border: none;
+    border: 0.1px solid black;
     border-radius: 12px;
     padding: 0.7em 1.2em 0.5em;
     font-size: 1rem;
@@ -216,7 +216,7 @@
 
 // Type color variants
 .move-btn.type-fire {
-    background: linear-gradient(90deg, #fd7d24, #ffb97a);
+    background: linear-gradient(90deg, #fd7d24, #ffb97a,);
 }
 
 .move-btn.type-water {
@@ -252,7 +252,7 @@
 }
 
 .move-btn.type-flying {
-    background: linear-gradient(90deg, #3dc7ef, #bdb9b8);
+    background: linear-gradient(90deg, #3dc7ef, #bdb9b8,);
     color: #234;
 }
 
@@ -515,5 +515,52 @@
     &:hover {
         background: linear-gradient(90deg, #ffb300, #ffd54f);
         color: #ff9800;
+    }
+}
+
+// ─── Move Effect Hover Modal ─────────────────────────────────────────────
+
+.move-effect-hover-modal {
+    position: fixed;
+    left: 50%;
+    bottom: 2rem;
+    transform: translateX(-50%);
+    z-index: 2100;
+    width: min(680px, 92vw);
+    background: rgba(15, 24, 38, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    padding: 0.85rem 1rem;
+    color: #eef5ff;
+    pointer-events: none;
+    animation: fadeInMoveEffect 0.2s ease-out;
+
+    &__title {
+        text-transform: capitalize;
+        font-weight: 800;
+        margin-bottom: 0.35rem;
+        color: #ffffff;
+        letter-spacing: 0.3px;
+    }
+
+    &__text {
+        font-size: 0.95rem;
+        line-height: 1.35;
+        white-space: pre-wrap;
+        max-height: 180px;
+        overflow-y: auto;
+    }
+}
+
+@keyframes fadeInMoveEffect {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
     }
 }

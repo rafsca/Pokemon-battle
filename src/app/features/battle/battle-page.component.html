@@ -85,6 +85,8 @@
                     <li class="battle-moves-item">
                         <button class="move-btn type-{{ move.type.name }}"
                             (click)="onSelectMove1(move)"
+                            (mouseenter)="onMoveHoverStart(move)"
+                            (mouseleave)="onMoveHoverEnd()"
                             [disabled]="pokemon1MovePP()[move.name] === 0">
                             <span class="move-btn__name">{{ move.name }}</span>
                             <div class="move-btn__stats">
@@ -110,6 +112,8 @@
                     <li class="battle-moves-item">
                         <button class="move-btn type-{{ move.type.name }}"
                             (click)="onSelectMove2(move)"
+                            (mouseenter)="onMoveHoverStart(move)"
+                            (mouseleave)="onMoveHoverEnd()"
                             [disabled]="pokemon2MovePP()[move.name] === 0">
                             <span class="move-btn__name">{{ move.name }}</span>
                             <div class="move-btn__stats">
@@ -163,6 +167,13 @@
                 Nuova Battaglia
             </button>
         </div>
+    </div>
+    }
+
+    @if (showMoveEffectModal()) {
+    <div class="move-effect-hover-modal">
+        <div class="move-effect-hover-modal__title">{{ moveEffectModalTitle() }}</div>
+        <div class="move-effect-hover-modal__text">{{ moveEffectModalText() }}</div>
     </div>
     }
 </div>

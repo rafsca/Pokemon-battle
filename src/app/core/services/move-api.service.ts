@@ -25,12 +25,20 @@ export class MoveApiService {
       map((responses: any[]) =>
         moves.map((moveRef, index) => {
           const detail = responses[index] ?? {};
-          const effectEntry = Array.isArray(detail.effect_entries)
-            ? detail.effect_entries.find((e: any) => e.language?.name === 'en')
-            : undefined;
+          const effectChance = detail.effect_chance;
+          const effectEntries = Array.isArray(detail.effect_entries)
+            ? detail.effect_entries.map((entry: any) => ({
+                ...entry,
+                effect: interpolateEffectChance(entry?.effect, effectChance),
+                short_effect: interpolateEffectChance(entry?.short_effect, effectChance),
+              }))
+            : [];
+
+          const effectEntry = effectEntries.find((e: any) => e.language?.name === 'en');
 
           return {
             ...(detail as SelectedMove),
+            effect_entries: effectEntries,
             name: detail.name ?? moveRef.name,
             shortEffect: effectEntry?.short_effect ?? effectEntry?.effect ?? null,
           } as SelectedMove;
@@ -38,4 +46,13 @@ export class MoveApiService {
       ),
     );
   }
+}
+
+function interpolateEffectChance(text: unknown, effectChance: unknown): string {
+  if (typeof text !== 'string') return '';
+  if (typeof effectChance !== 'number' || Number.isNaN(effectChance)) return text;
+
+  return text
+    .replace(/\$effect_chance%/gi, `${effectChance}%`)
+    .replace(/\$effect_chance/gi, `${effectChance}`);
 }
