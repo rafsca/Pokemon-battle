@@ -1,0 +1,192 @@
+@use 'sass:color';
+
+@font-face {
+    font-family: 'Science Gothic';
+    src: url('../../../font/Science-Gothic/static/ScienceGothic-Regular.ttf') format('truetype');
+    font-weight: 100;
+    font-style: normal;
+}
+
+.pokemon-card-wrapper {
+    justify-items: center;
+
+    &__title {
+        font-size: 36px;
+        margin-bottom: 20px;
+    }
+}
+
+// ─── Pokémon Type Color Map ─────────────────────────────────────────────────
+
+$pokemon-types: (
+    normal: #A8A77A,
+    fire: #EE8130,
+    water: #6390F0,
+    electric: #F7D02C,
+    grass: #7AC74C,
+    ice: #96D9D6,
+    fighting: #C22E28,
+    poison: #A33EA1,
+    ground: #E2BF65,
+    flying: #A98FF3,
+    psychic: #F95587,
+    bug: #A6B91A,
+    rock: #B6A136,
+    ghost: #735797,
+    dragon: #6F35FC,
+    dark: #705746,
+    steel: #B7B7CE,
+    fairy: #D685AD,
+);
+
+@each $type, $color in $pokemon-types {
+    .#{$type} {
+        background: linear-gradient(135deg, color.scale($color, $lightness: 30%), color.scale($color, $lightness: -30%));
+        color: white;
+        border-radius: 12px;
+        padding: 10px;
+        font-weight: 600;
+        text-transform: capitalize;
+        display: inline-block;
+        margin: 0 5px;
+    }
+
+    .type-#{$type} {
+        color: $color;
+        font-weight: 600;
+        text-transform: capitalize;
+    }
+}
+
+// ─── Card ───────────────────────────────────────────────────────────────────
+
+.pokemon-card {
+    background: #b1b0b0;
+    border-radius: 12px;
+    padding: 20px;
+    width: 95%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    margin-top: 20px;
+
+    .subtitle {
+        font-size: 30px;
+        margin: 15px 0 10px 0;
+    }
+
+    .pokemon-card__sprite {
+        width: 150px;
+        height: 150px;
+        object-fit: contain;
+        margin-bottom: 15px;
+    }
+
+    .pokemon-card__name,
+    .pokemon-card__height,
+    .pokemon-card__weight {
+        font-size: 24px;
+        margin: 5px 0;
+    }
+
+    // ─── Stats ──────────────────────────────────────────────────────────
+
+    .pokemon-card__stats {
+        list-style: none;
+        padding: 0;
+        margin: 10px 0;
+
+        .pokemon-card__stats-item {
+            font-size: 20px;
+            font-family: 'Science Gothic';
+            margin: 3px 0;
+
+            &.stat-boosted {
+                color: #2e7d32;
+            }
+
+            &.stat-lowered {
+                color: #c62828;
+            }
+
+            .stat-change {
+                font-size: 0.85em;
+                font-weight: 700;
+                margin-left: 0.3em;
+
+                &.positive {
+                    color: #2e7d32;
+                }
+
+                &.negative {
+                    color: #c62828;
+                }
+            }
+        }
+
+        &__bst {
+            margin-top: 15px;
+            font-size: 22px;
+            font-weight: 700;
+        }
+    }
+
+    // ─── Types ──────────────────────────────────────────────────────────
+
+    .pokemon-card__types {
+        list-style: none;
+        padding: 0;
+        margin: 10px 0;
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    // ─── Moves ──────────────────────────────────────────────────────────
+
+    .pokemon-card__moves {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 5px;
+        list-style: none;
+        padding: 0;
+        margin: 10px 0;
+
+        &__error {
+            color: red;
+            font-weight: 600;
+        }
+
+        .pokemon-card__moves-item {
+            background: #e0e0e0;
+            padding: 3px;
+            margin: 8px 0;
+            text-align: left;
+            border: #555 1px solid;
+            border-radius: 8px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+
+            &__name {
+                font-size: 24px;
+                margin-bottom: 5px;
+                margin-top: 5px;
+            }
+
+            &__type {
+                font-size: 18px;
+                margin-bottom: 3px;
+            }
+
+            &__power {
+                font-size: 18px;
+                margin-bottom: 3px;
+            }
+
+            &__effect {
+                font-size: 16px;
+                font-style: italic;
+                color: #555;
+                margin-bottom: 5px;
+            }
+        }
+    }
+}

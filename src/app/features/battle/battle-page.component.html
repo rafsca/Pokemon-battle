@@ -1,0 +1,168 @@
+<div class="battle-page">
+    @if (isLoading()) {
+    <div class="battle-loading">Caricamento Pokémon...</div>
+    }
+    @if (pokemon1() && pokemon2()) {
+    <div class="battle-container">
+        <div class="battle-arena-wrapper">
+            <div class="battle-arena-classic">
+                <!-- ─── Opponent (top-right) ─────────────────────────────────── -->
+                <div class="battle-opponent">
+                    <div class="battle-hp-container battle-hp-container--opponent">
+                        <div class="battle-hp-container__label">
+                            {{ pokemon2()?.name }}: {{ getHpPercentage(pokemon2CurrentHp(), pokemon2()) }}%
+                        </div>
+                        <div class="battle-hp-container__bar">
+                            <div class="battle-hp-container__bar-fill"
+                                [class]="'battle-hp-container__bar-fill--' + getHpBarClass(getHpPercentage(pokemon2CurrentHp(), pokemon2()))"
+                                [style.width.%]="getHpPercentage(pokemon2CurrentHp(), pokemon2())">
+                            </div>
+                        </div>
+                        <div class="battle-hp-container__value">
+                            {{ pokemon2CurrentHp() }} / {{ getHpBaseStat(pokemon2()) }} HP
+                        </div>
+                        @if (pokemon2Status()) {
+                        <div class="battle-status battle-status--{{ pokemon2Status() }}">
+                            {{ getStatusAbbreviation(pokemon2Status()) }}
+                        </div>
+                        }
+                        @if (pokemon2ConfusionTurns() > 0) {
+                        <div class="battle-status battle-status--confusion">CONF</div>
+                        }
+                    </div>
+                    <img [src]="getShowdownFront(pokemon2()) ?? pokemon2()?.sprites?.front_default"
+                        alt="pokemon2" class="battle-sprite-opponent"
+                        [class.sprite-attack]="pokemon2Attacking()"
+                        [style.--attack-x]="pokemon2Attacking() ? '-80px' : '0'"
+                        (click)="pokemon2() && openModal(pokemon2()!)"
+                        style="cursor:pointer;" />
+                </div>
+
+                <!-- ─── Player (bottom-left) ─────────────────────────────────── -->
+                <div class="battle-player">
+                    <img [src]="getShowdownBack(pokemon1()) ?? pokemon1()?.sprites?.front_default"
+                        alt="pokemon1" class="battle-sprite-player"
+                        [class.sprite-attack]="pokemon1Attacking()"
+                        [style.--attack-x]="pokemon1Attacking() ? '80px' : '0'"
+                        (click)="pokemon1() && openModal(pokemon1()!)"
+                        style="cursor:pointer;" />
+
+                    @if (!pokemon2Moves().length) {
+                    <li class="battle-moves-error">Nessuna mossa disponibile</li>
+                    }
+
+                    <div class="battle-hp-container battle-hp-container--player">
+                        <div class="battle-hp-container__label">
+                            {{ pokemon1()?.name }}: {{ getHpPercentage(pokemon1CurrentHp(), pokemon1()) }}%
+                        </div>
+                        <div class="battle-hp-container__bar">
+                            <div class="battle-hp-container__bar-fill"
+                                [class]="'battle-hp-container__bar-fill--' + getHpBarClass(getHpPercentage(pokemon1CurrentHp(), pokemon1()))"
+                                [style.width.%]="getHpPercentage(pokemon1CurrentHp(), pokemon1())">
+                            </div>
+                        </div>
+                        <div class="battle-hp-container__value">
+                            {{ pokemon1CurrentHp() }} / {{ getHpBaseStat(pokemon1()) }} HP
+                        </div>
+                        @if (pokemon1Status()) {
+                        <div class="battle-status battle-status--{{ pokemon1Status() }}">
+                            {{ getStatusAbbreviation(pokemon1Status()) }}
+                        </div>
+                        }
+                        @if (pokemon1ConfusionTurns() > 0) {
+                        <div class="battle-status battle-status--confusion">CONF</div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- ─── Move Selection ─────────────────────────────────────────── -->
+            @if (turnState() === 'choose1') {
+            <div class="battle-moves-container battle-moves-container--player">
+                <h4>Mosse di {{ pokemon1()?.name }}</h4>
+                <ul class="battle-moves-list">
+                    @for (move of pokemon1Moves(); track move.name) {
+                    <li class="battle-moves-item">
+                        <button class="move-btn type-{{ move.type.name }}"
+                            (click)="onSelectMove1(move)"
+                            [disabled]="pokemon1MovePP()[move.name] === 0">
+                            <span class="move-btn__name">{{ move.name }}</span>
+                            <div class="move-btn__stats">
+                                <span class="battle-moves-type">{{ move.type.name }}</span>
+                                <span class="battle-moves-power">Pwr: {{ move.power }}</span>
+                                <span class="battle-moves-accuracy">Acc: {{ move.accuracy }}</span>
+                                <span class="battle-moves-pp">PP: {{ pokemon1MovePP()[move.name] }}</span>
+                            </div>
+                        </button>
+                    </li>
+                    }
+                    @if (!pokemon1Moves().length) {
+                    <li class="battle-moves-error">Nessuna mossa disponibile</li>
+                    }
+                </ul>
+            </div>
+            }
+            @if (turnState() === 'choose2') {
+            <div class="battle-moves-container battle-moves-container--opponent">
+                <h4>Mosse di {{ pokemon2()?.name }}</h4>
+                <ul class="battle-moves-list">
+                    @for (move of pokemon2Moves(); track move.name) {
+                    <li class="battle-moves-item">
+                        <button class="move-btn type-{{ move.type.name }}"
+                            (click)="onSelectMove2(move)"
+                            [disabled]="pokemon2MovePP()[move.name] === 0">
+                            <span class="move-btn__name">{{ move.name }}</span>
+                            <div class="move-btn__stats">
+                                <span class="battle-moves-type">{{ move.type.name }}</span>
+                                <span class="battle-moves-power">Pwr: {{ move.power }}</span>
+                                <span class="battle-moves-accuracy">Acc: {{ move.accuracy }}</span>
+                                <span class="battle-moves-pp">PP: {{ pokemon2MovePP()[move.name] }}</span>
+                            </div>
+                        </button>
+                    </li>
+                    }
+                    @if (!pokemon2Moves().length) {
+                    <li class="battle-moves-error">Nessuna mossa disponibile</li>
+                    }
+                </ul>
+            </div>
+            }
+        </div>
+
+        <!-- ─── Battle Log ─────────────────────────────────────────────── -->
+        <div class="battle-log-wrapper">
+            <app-battle-log [logs]="battleLogs()"></app-battle-log>
+        </div>
+    </div>
+    }
+
+    <!-- ─── Error State ──────────────────────────────────────────────── -->
+    @if (!isLoading() && (!pokemon1() || !pokemon2())) {
+    <div class="battle-error">
+        <p>Impossibile caricare i Pokémon. Riprova.</p>
+        <button class="battle-btn" (click)="startNewBattle()">Riprova</button>
+    </div>
+    }
+
+    <!-- ─── Pokémon Detail Modal ─────────────────────────────────────── -->
+    @if (showModal() && modalPokemon()) {
+    <div class="pokemon-modal-overlay" (click)="closeModal()">
+        <div class="pokemon-modal" (click)="$event.stopPropagation()">
+            <app-pokemon-card [pokemonInput]="modalPokemon()" [statChanges]="modalPokemonStats()"></app-pokemon-card>
+        </div>
+    </div>
+    }
+
+    <!-- ─── Victory Modal ────────────────────────────────────────────── -->
+    @if (showVictoryModal()) {
+    <div class="victory-modal-overlay">
+        <div class="victory-modal">
+            <img *ngIf="victorySprite" [src]="victorySprite" alt="Vincitore" class="victory-sprite" />
+            <div class="victory-text">{{ victoryText }}</div>
+            <button class="battle-btn" (click)="startNewBattle(); showVictoryModal.set(false);">
+                Nuova Battaglia
+            </button>
+        </div>
+    </div>
+    }
+</div>
