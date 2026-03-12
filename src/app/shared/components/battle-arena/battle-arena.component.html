@@ -1,0 +1,61 @@
+<div class="battle-arena-classic">
+  <div class="battle-opponent">
+    <div class="battle-hp-container battle-hp-container--opponent">
+      <div class="battle-hp-container__label">
+        {{ enemyPokemon.name }} · Lv {{ enemyLevel }}
+      </div>
+      <div class="battle-hp-container__bar">
+        <div
+          class="battle-hp-container__bar-fill"
+          [class]="'battle-hp-container__bar-fill--' + hpClass(enemyHpPercent)"
+            [class.hp-hit]="enemyHpHit"
+          [style.width.%]="enemyHpPercent">
+        </div>
+      </div>
+      <div class="battle-hp-container__value">{{ enemyCurrentHp }} / {{ enemyMaxHp }} HP</div>
+      @if (enemyStatus) {
+      <div class="battle-status battle-status--{{ enemyStatus }}">
+        {{ statusAbbreviation(enemyStatus) }}
+      </div>
+      }
+      @if (enemyConfusionTurns > 0) {
+      <div class="battle-status battle-status--confusion">CONF</div>
+      }
+    </div>
+
+    <div class="sprite-wrap">
+      <div class="sprite-shadow sprite-shadow--opponent"></div>
+      <img [src]="enemySpriteFront" [alt]="enemyPokemon.name" class="battle-sprite-opponent" [class.sprite-attack]="enemyAttacking" />
+    </div>
+  </div>
+
+  <div class="battle-player">
+    <div class="sprite-wrap">
+      <div class="sprite-shadow sprite-shadow--player"></div>
+      <img [src]="playerSpriteBack" [alt]="playerPokemon.name" class="battle-sprite-player" [class.sprite-attack]="playerAttacking" />
+    </div>
+
+    <div class="battle-hp-container battle-hp-container--player">
+      <div class="battle-hp-container__label">
+        {{ playerPokemon.name }} · Lv {{ playerLevel }}
+      </div>
+      <div class="battle-hp-container__bar">
+        <div
+          class="battle-hp-container__bar-fill"
+          [class]="'battle-hp-container__bar-fill--' + hpClass(playerHpPercent)"
+            [class.hp-hit]="playerHpHit"
+          [style.width.%]="playerHpPercent">
+        </div>
+      </div>
+      <div class="battle-hp-container__value">{{ playerCurrentHp }} / {{ playerMaxHp }} HP</div>
+      @if (playerStatus) {
+      <div class="battle-status battle-status--{{ playerStatus }}">
+        {{ statusAbbreviation(playerStatus) }}
+      </div>
+      }
+      @if (playerConfusionTurns > 0) {
+      <div class="battle-status battle-status--confusion">CONF</div>
+      }
+    </div>
+  </div>
+</div>

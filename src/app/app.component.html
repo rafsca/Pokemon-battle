@@ -8,7 +8,15 @@
 
   <div class="links">
     <button routerLink="battle" routerLinkActive="active" class="start" aria-label="Battle">Battle</button>
+    <button routerLink="battle-pro" routerLinkActive="active" aria-label="Battle Pro">Battle Pro 🔒</button>
     <button routerLink="pokemon" routerLinkActive="active" aria-label="Pokemon Generator">Pokemon Generator</button>
+
+    @if (auth.isLoggedIn()) {
+    <span class="user-badge">{{ auth.user()?.email }}</span>
+    <button (click)="onLogout()" aria-label="Logout">Logout</button>
+    } @else {
+    <button routerLink="auth" routerLinkActive="active" aria-label="Login">Login</button>
+    }
   </div>
 </nav>
 
