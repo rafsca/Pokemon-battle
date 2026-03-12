@@ -39,6 +39,18 @@ nav .links {
     align-items: center;
 }
 
+.user-badge {
+    color: #fff;
+    font-size: 0.82rem;
+    padding: 0.35rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 nav button,
 nav a {
     appearance: none;

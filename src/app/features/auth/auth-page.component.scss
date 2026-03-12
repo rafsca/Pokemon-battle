@@ -1,0 +1,89 @@
+.auth-page {
+  min-height: calc(100vh - 80px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: radial-gradient(circle at 20% 20%, #1d3557, #0b132b 60%);
+}
+
+.auth-card {
+  width: min(480px, 95vw);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 1.2rem;
+  color: #fff;
+}
+
+h1 {
+  margin: 0 0 0.25rem;
+}
+
+.subtitle {
+  margin-top: 0;
+  opacity: 0.85;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0;
+
+  button {
+    flex: 1;
+    border: none;
+    border-radius: 10px;
+    padding: 0.6rem;
+    font-weight: 700;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+  }
+
+  button.active {
+    background: #ffd166;
+    color: #222;
+  }
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-weight: 600;
+  }
+
+  input {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    padding: 0.65rem 0.75rem;
+    background: rgba(0, 0, 0, 0.2);
+    color: #fff;
+  }
+
+  .submit {
+    margin-top: 0.5rem;
+    border: none;
+    border-radius: 10px;
+    padding: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    background: #06d6a0;
+    color: #1f2937;
+  }
+}
+
+.message {
+  margin-top: 0.75rem;
+  color: #ffd166;
+}
+
+.error {
+  margin-top: 0.25rem;
+  color: #ff6b6b;
+}

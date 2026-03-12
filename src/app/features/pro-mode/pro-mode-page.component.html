@@ -1,0 +1,225 @@
+@if (!pro.runActive() && !pro.awaitingRunEndContinue()) {
+<section class="starter-screen">
+  <header class="topbar">
+    <div>
+      <h1>Scegli il tuo starter (Run Pro)</h1>
+      <p>Starter sbloccati a colori, bloccati in bianco e nero.</p>
+    </div>
+    <div class="top-stats">
+      <div class="chip">Punti: <strong>{{ pro.points() }}</strong></div>
+      <div class="chip">Sbloccati: <strong>{{ pro.unlockedStarterIds().length }} / {{ pro.starterCatalog().length }}</strong></div>
+    </div>
+  </header>
+
+  @if (pro.error()) {
+  <p class="error">{{ pro.error() }}</p>
+  }
+
+  <div class="starter-catalog">
+    @for (entry of pro.starterCatalog(); track entry.id) {
+    <button
+      class="starter-card"
+      [class.locked]="!isUnlocked(entry.id)"
+      [class.selected]="isSelectedStarter(entry.id)"
+      (click)="onStarterCardClick(entry.id)">
+      <img [src]="entry.spriteUrl" [alt]="entry.name" />
+      <div class="name">{{ entry.name }}</div>
+      <div class="small">#{{ entry.id }}</div>
+      @if (isShiny(entry.id)) {
+      <div class="shiny-tag">✨ SHINY</div>
+      }
+      @if (!isUnlocked(entry.id)) {
+      <div class="lock-tag">LOCKED</div>
+      }
+    </button>
+    }
+  </div>
+
+  <div class="starter-actions">
+    @if (selectedStarterId()) {
+    <button class="primary" (click)="startWithSelected()" [disabled]="pro.isLoading()">
+      Inizia run con {{ selectedStarterName }}
+    </button>
+    }
+
+    @if (pro.unlockCandidate()) {
+    <button class="primary unlock" (click)="pro.unlockCandidatePokemon()" [disabled]="pro.points() < pro.unlockCandidateCost()">
+      Sblocca {{ pro.unlockCandidate()!.name }} · Costo {{ pro.unlockCandidateCost() }}
+    </button>
+    }
+  </div>
+</section>
+}
+
+@if (pro.runActive() || pro.awaitingRunEndContinue()) {
+<section class="pro-mode-page">
+  <header class="topbar">
+    <div>
+      <h1>Battle Pro</h1>
+      <p>Stage {{ pro.currentStage() }} · Range BST {{ getBstRangeLabel(pro.currentStage()) }}</p>
+    </div>
+    <div class="top-stats">
+      <div class="chip">Punti: <strong>{{ pro.points() }}</strong></div>
+      <div class="chip">Progress: <strong>{{ pro.progressPercent() }}%</strong></div>
+    </div>
+  </header>
+
+  @if (pro.isLoading() && !pro.waitingStatAllocation()) {
+  <div class="battle-loading-shell">
+    <div class="battle-loading-spinner"></div>
+    <p>Caricamento battaglia...</p>
+  </div>
+  }
+
+  @if (!pro.isLoading() && pro.player() && pro.enemy()) {
+  <div class="battle-layout">
+    <aside class="side-stats side-stats--player">
+      <h3>{{ pro.player()!.pokemon.name }} stats</h3>
+      <ul>
+        @for (s of playerStats; track s.key) {
+        <li>
+          <span>{{ s.label }}</span>
+          <div class="stat-readout">
+            <strong [class.stat-up]="s.stage > 0" [class.stat-down]="s.stage < 0">{{ s.value }}</strong>
+            @if (s.stage !== 0) {
+            <small [class.stat-up]="s.stage > 0" [class.stat-down]="s.stage < 0">
+              {{ s.stage > 0 ? '+' + s.stage : s.stage }}
+            </small>
+            }
+          </div>
+        </li>
+        }
+      </ul>
+    </aside>
+
+    <app-battle-arena
+      [playerPokemon]="pro.player()!.pokemon"
+      [enemyPokemon]="pro.enemy()!.pokemon"
+      [playerCurrentHp]="pro.player()!.currentHp"
+      [playerMaxHp]="pro.player()!.maxHp"
+      [enemyCurrentHp]="pro.enemy()!.currentHp"
+      [enemyMaxHp]="pro.enemy()!.maxHp"
+      [playerLevel]="pro.player()!.level"
+      [enemyLevel]="pro.enemy()!.level"
+      [playerAttacking]="pro.playerAttacking()"
+      [enemyAttacking]="pro.enemyAttacking()"
+      [playerStatus]="pro.player()!.status"
+      [enemyStatus]="pro.enemy()!.status"
+      [playerConfusionTurns]="pro.player()!.confusionTurns"
+      [enemyConfusionTurns]="pro.enemy()!.confusionTurns">
+    </app-battle-arena>
+
+    <aside class="side-stats side-stats--enemy">
+      <h3>{{ pro.enemy()!.pokemon.name }} stats</h3>
+      <ul>
+        @for (s of enemyStats; track s.key) {
+        <li>
+          <span>{{ s.label }}</span>
+          <div class="stat-readout">
+            <strong [class.stat-up]="s.stage > 0" [class.stat-down]="s.stage < 0">{{ s.value }}</strong>
+            @if (s.stage !== 0) {
+            <small [class.stat-up]="s.stage > 0" [class.stat-down]="s.stage < 0">
+              {{ s.stage > 0 ? '+' + s.stage : s.stage }}
+            </small>
+            }
+          </div>
+        </li>
+        }
+      </ul>
+    </aside>
+  </div>
+  }
+
+  @if (pro.transitioningToLevelUp()) {
+  <div class="phase-overlay">Passaggio a level-up...</div>
+  }
+
+  @if (pro.runActive() && pro.player() && pro.enemy() && !pro.isLoading() && !pro.waitingStatAllocation() && !pro.transitioningToLevelUp()) {
+  <h3>Mosse</h3>
+  <div class="moves">
+    @for (move of pro.player()!.moves; track move.name) {
+    <button
+      class="move-btn"
+      [class]="'move-btn type-' + (move.type.name || 'unknown')"
+      (click)="pro.playTurn(move.name)">
+      {{ move.name }}
+      <span>Pow {{ move.power }} · Acc {{ move.accuracy }}</span>
+    </button>
+    }
+  </div>
+  }
+
+  @if (pro.waitingStatAllocation() && pro.player() && !pro.transitioningToLevelUp()) {
+  <section class="levelup levelup--enter">
+    <h3>Level up: assegna punti statistica</h3>
+    <p>Punti rimanenti: <strong>{{ pro.pendingStatPoints() }}</strong> (4 punti random già assegnati)</p>
+
+    @if (pro.pendingNewMove()) {
+    <div class="learn-move-box">
+      <h4>Nuova mossa: {{ pro.pendingNewMove()!.name }}</h4>
+      <p>Hai già 4 mosse. Scegli quale sostituire oppure clicca la nuova mossa per non impararla.</p>
+      <div class="replace-grid">
+        @for (move of pro.player()!.moves; track move.name) {
+        <button class="replace-btn" (click)="pro.replaceMoveWithNew(move.name)">
+          Sostituisci {{ move.name }}
+        </button>
+        }
+        <button class="replace-btn skip" (click)="pro.requestSkipNewMove()">
+          Non imparare {{ pro.pendingNewMove()!.name }}
+        </button>
+      </div>
+    </div>
+    }
+
+    <div class="stats-grid">
+      @for (entry of pro.player()!.bonusStats | keyvalue; track entry.key) {
+      <div class="stat-control">
+        <div class="stat-label">{{ getStatPointLabel(entry.key) }}</div>
+        <div class="stat-bonuses">
+          <span class="bonus-past">+{{ pro.getPastBonus(entry.key) }}</span>
+          <span class="bonus-now">+{{ pro.getCurrentLevelBonus(entry.key) }} (rnd {{ pro.getCurrentLevelRandomBonus(entry.key) }})</span>
+        </div>
+        <div class="stat-actions">
+          <button (click)="pro.removeDraftStat(entry.key)" [disabled]="getDraftValue(entry.key) <= 0">−</button>
+          <span>{{ getDraftValue(entry.key) }}</span>
+          <button (click)="pro.addDraftStat(entry.key)" [disabled]="pro.pendingStatPoints() <= 0">+</button>
+        </div>
+      </div>
+      }
+    </div>
+
+    <button class="primary" (click)="pro.continueAfterLevelUp()" [disabled]="pro.pendingStatPoints() > 0 || !!pro.pendingNewMove()">
+      Continua al livello {{ pro.currentStage() }}
+    </button>
+  </section>
+  }
+
+  <section class="log">
+    <h3>Battle log</h3>
+    <ul>
+      @for (line of pro.battleLog(); track $index) {
+      <li>{{ line }}</li>
+      }
+    </ul>
+  </section>
+
+  @if (!pro.runActive() && pro.awaitingRunEndContinue()) {
+  <div class="post-loss-actions">
+    <button class="primary" (click)="pro.continueAfterLoss()">Continua</button>
+  </div>
+  }
+
+  @if (pro.showSkipMoveConfirm()) {
+  <div class="modal-overlay" (click)="pro.cancelSkipNewMove()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <h4>Conferma</h4>
+      <p>Vuoi davvero non imparare {{ pro.pendingNewMove()?.name }}?</p>
+      <div class="modal-actions">
+        <button (click)="pro.cancelSkipNewMove()">Annulla</button>
+        <button class="danger" (click)="pro.confirmSkipNewMove()">Conferma</button>
+      </div>
+    </div>
+  </div>
+  }
+</section>
+}
