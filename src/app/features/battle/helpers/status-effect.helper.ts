@@ -32,6 +32,7 @@ export function checkCanAct(params: {
       logs.push(createLog(`${pokemonName} woke up!`, 'status'));
     } else {
       newSleepTurns = sleepTurns + 1;
+      logs.push(createLog(`${pokemonName} is fast asleep!`, 'status'));
       return { canAct: false, selfDamage: 0, logs, newSleepTurns, newConfusionTurns, statusCleared };
     }
   }
@@ -42,6 +43,7 @@ export function checkCanAct(params: {
       statusCleared = true;
       logs.push(createLog(`${pokemonName} thawed out!`, 'status'));
     } else {
+      logs.push(createLog(`${pokemonName} is frozen solid and can't move!`, 'status'));
       return { canAct: false, selfDamage: 0, logs, newSleepTurns, newConfusionTurns, statusCleared };
     }
   }

@@ -22,6 +22,7 @@ export class BattleArenaComponent implements OnChanges {
 
   @Input() playerLevel = 1;
   @Input() enemyLevel = 1;
+  @Input() enemyAlpha = false;
   @Input() playerAttacking = false;
   @Input() enemyAttacking = false;
   @Input() playerStatus: string | null = null;

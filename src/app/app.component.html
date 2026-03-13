@@ -33,7 +33,7 @@
       <button routerLink="pokemon" routerLinkActive="active" [attr.aria-label]="lang.t('navPokemonGenerator')" (click)="closeMobileMenu()">{{ lang.t('navPokemonGenerator') }}</button>
 
       @if (auth.isLoggedIn()) {
-      <span class="user-badge">{{ auth.user()?.email }}</span>
+      <span class="user-badge">{{ auth.displayName() }}</span>
       <button (click)="onLogout(); closeMobileMenu()" [attr.aria-label]="lang.t('navLogout')">{{ lang.t('navLogout') }}</button>
       } @else {
       <button routerLink="auth" routerLinkActive="active" [attr.aria-label]="lang.t('navLogin')" (click)="closeMobileMenu()">{{ lang.t('navLogin') }}</button>

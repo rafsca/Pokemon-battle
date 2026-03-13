@@ -7,10 +7,19 @@ export class AuthService {
   private readonly supabase: SupabaseClient;
 
   user = signal<User | null>(null);
+  nickname = signal<string | null>(null);
   isLoading = signal(true);
   authError = signal<string | null>(null);
 
   isLoggedIn = computed(() => !!this.user());
+  displayName = computed(() => {
+    const nick = this.nickname()?.trim();
+    if (nick) return nick;
+
+    const email = this.user()?.email?.trim();
+    if (!email) return 'User';
+    return email.split('@')[0] || email;
+  });
 
   constructor() {
     this.supabase = createClient(environment.supabaseUrl, environment.supabaseAnonKey);
@@ -54,12 +63,14 @@ export class AuthService {
     }
 
     this.user.set(data.user ?? null);
+    await this.loadUserNickname(data.user?.id ?? null);
     return { ok: true };
   }
 
   async signOut(): Promise<void> {
     await this.supabase.auth.signOut();
     this.user.set(null);
+    this.nickname.set(null);
   }
 
   private async initializeAuthListener(): Promise<void> {
@@ -70,10 +81,12 @@ export class AuthService {
 
     const { data } = await this.supabase.auth.getUser();
     this.user.set(data.user ?? null);
+    await this.loadUserNickname(data.user?.id ?? null);
     this.isLoading.set(false);
 
     this.supabase.auth.onAuthStateChange((_event, session) => {
       this.user.set(session?.user ?? null);
+      void this.loadUserNickname(session?.user?.id ?? null);
     });
   }
 
@@ -95,5 +108,30 @@ export class AuthService {
   private isDbConfigured(): boolean {
     return !environment.supabaseUrl.includes('YOUR_SUPABASE_URL_HERE')
       && !environment.supabaseAnonKey.includes('YOUR_SUPABASE_ANON_KEY_HERE');
+  }
+
+  private async loadUserNickname(userId: string | null): Promise<void> {
+    if (!userId || !this.isDbConfigured()) {
+      this.nickname.set(null);
+      return;
+    }
+
+    try {
+      const { data, error } = await this.supabase
+        .from('profiles')
+        .select('nickname')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error) {
+        this.nickname.set(null);
+        return;
+      }
+
+      const value = typeof data?.nickname === 'string' ? data.nickname.trim() : '';
+      this.nickname.set(value || null);
+    } catch {
+      this.nickname.set(null);
+    }
   }
 }

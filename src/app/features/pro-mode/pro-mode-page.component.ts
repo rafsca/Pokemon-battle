@@ -20,6 +20,7 @@ export class ProModePageComponent implements OnDestroy {
   showMoveEffectModal = signal(false);
   moveEffectModalTitle = signal('');
   moveEffectModalText = signal('');
+  levelUpWarning = signal('');
   private hoverEffectTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
@@ -32,13 +33,21 @@ export class ProModePageComponent implements OnDestroy {
       const shouldHideMoveModal = !this.pro.runActive()
         || !this.pro.player()
         || !this.pro.enemy()
-        || this.pro.waitingStatAllocation()
+        || this.pro.resolvingTurn()
+        || (this.pro.waitingStatAllocation() && !this.pro.pendingNewMove())
         || this.pro.transitioningToLevelUp()
         || this.pro.showResumeRunPrompt();
 
       if (shouldHideMoveModal) {
         this.onMoveHoverEnd();
       }
+    });
+
+    effect(() => {
+      this.pro.pendingStatPoints();
+      this.pro.pendingNewMove();
+      this.pro.waitingStatAllocation();
+      this.levelUpWarning.set('');
     });
   }
 
@@ -99,6 +108,10 @@ export class ProModePageComponent implements OnDestroy {
     return this.pro.getRunStats('enemy');
   }
 
+  isEnemyAlpha(): boolean {
+    return !!this.pro.enemy() && this.pro.currentStage() % 10 === 0;
+  }
+
   getDraftValue(stat: string): number {
     const draft = this.pro.statDraftDelta();
     const key = stat as keyof typeof draft;
@@ -134,6 +147,13 @@ export class ProModePageComponent implements OnDestroy {
     return this.lang.getLocalizedMoveName(move);
   }
 
+  getMoveClassSymbol(move: SelectedMove): string {
+    const moveClass = move.damage_class?.name;
+    if (moveClass === 'physical') return '💥';
+    if (moveClass === 'special') return '🌀';
+    return '💫';
+  }
+
   ngOnDestroy(): void {
     this.onMoveHoverEnd();
   }
@@ -153,6 +173,21 @@ export class ProModePageComponent implements OnDestroy {
       this.hoverEffectTimer = null;
     }
     this.showMoveEffectModal.set(false);
+  }
+
+  async onContinueAfterLevelUp(): Promise<void> {
+    if (this.pro.pendingNewMove()) {
+      this.levelUpWarning.set('Prima scegli cosa fare con la nuova mossa.');
+      return;
+    }
+
+    if (this.pro.pendingStatPoints() > 0) {
+      this.levelUpWarning.set('Prima devi distribuire tutti i punti statistica.');
+      return;
+    }
+
+    this.levelUpWarning.set('');
+    await this.pro.continueAfterLevelUp();
   }
 
   private getMoveEffectText(move: SelectedMove): string {

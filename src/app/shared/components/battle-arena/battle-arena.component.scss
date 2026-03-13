@@ -220,6 +220,21 @@
   &--normal { background: linear-gradient(90deg, #8f9a9e, #b4bec0); color: #1f2a30; }
 }
 
+.battle-alpha-tag {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.08rem 0.38rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(90deg, #b30000, #ff2e2e);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  vertical-align: middle;
+}
+
 @keyframes hp-hit {
   0% { filter: brightness(1); }
   30% { filter: brightness(1.8); }

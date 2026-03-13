@@ -107,6 +107,7 @@ export class ProModeService {
 
   playerAttacking = signal(false);
   enemyAttacking = signal(false);
+  resolvingTurn = signal(false);
 
   player = signal<ProRunPokemon | null>(null);
   enemy = signal<ProRunPokemon | null>(null);
@@ -248,62 +249,68 @@ export class ProModeService {
   }
 
   async playTurn(playerMoveName: string): Promise<void> {
-    if (!this.runActive() || this.waitingStatAllocation() || this.transitioningToLevelUp()) return;
+    if (!this.runActive() || this.waitingStatAllocation() || this.transitioningToLevelUp() || this.resolvingTurn()) return;
     const player = this.player();
     const enemy = this.enemy();
     if (!player || !enemy) return;
 
-    // Protect dura solo per il turno corrente
-    this.player.update(p => (p ? { ...p, protected: false } : p));
-    this.enemy.update(p => (p ? { ...p, protected: false } : p));
+    this.resolvingTurn.set(true);
 
-    const playerMove = player.moves.find(m => m.name === playerMoveName);
-    if (!playerMove) return;
+    try {
+      // Protect dura solo per il turno corrente
+      this.player.update(p => (p ? { ...p, protected: false } : p));
+      this.enemy.update(p => (p ? { ...p, protected: false } : p));
 
-    const enemyMove = enemy.moves[Math.floor(Math.random() * enemy.moves.length)];
-    if (!enemyMove) return;
+      const playerMove = player.moves.find(m => m.name === playerMoveName);
+      if (!playerMove) return;
 
-    const playerSpeed = this.calculateStatValue(player.pokemon, 'speed', player.level, player.bonusStats);
-    const enemySpeed = this.calculateStatValue(enemy.pokemon, 'speed', enemy.level, enemy.bonusStats);
-    const playerFirst = playerSpeed >= enemySpeed;
+      const enemyMove = enemy.moves[Math.floor(Math.random() * enemy.moves.length)];
+      if (!enemyMove) return;
 
-    if (playerFirst) {
-      await this.applyAttack(true, playerMove, player, enemy);
-      if (this.enemy() && this.enemy()!.currentHp > 0) {
-        await this.applyAttack(false, enemyMove, this.enemy()!, this.player()!);
+      const playerSpeed = this.calculateStatValue(player.pokemon, 'speed', player.level, player.bonusStats);
+      const enemySpeed = this.calculateStatValue(enemy.pokemon, 'speed', enemy.level, enemy.bonusStats);
+      const playerFirst = playerSpeed >= enemySpeed;
+
+      if (playerFirst) {
+        await this.applyAttack(true, playerMove, player, enemy);
+        if (this.enemy() && this.enemy()!.currentHp > 0) {
+          await this.applyAttack(false, enemyMove, this.enemy()!, this.player()!);
+        }
+      } else {
+        await this.applyAttack(false, enemyMove, enemy, player);
+        if (this.player() && this.player()!.currentHp > 0) {
+          await this.applyAttack(true, playerMove, this.player()!, this.enemy()!);
+        }
       }
-    } else {
-      await this.applyAttack(false, enemyMove, enemy, player);
-      if (this.player() && this.player()!.currentHp > 0) {
-        await this.applyAttack(true, playerMove, this.player()!, this.enemy()!);
+
+      const updatedEnemy = this.enemy();
+      const updatedPlayer = this.player();
+
+      if (updatedEnemy && updatedEnemy.currentHp <= 0) {
+        await this.sleep(550);
+        await this.onEnemyDefeated();
+        return;
       }
-    }
 
-    const updatedEnemy = this.enemy();
-    const updatedPlayer = this.player();
+      this.applyEndOfTurnEffects();
 
-    if (updatedEnemy && updatedEnemy.currentHp <= 0) {
-      await this.sleep(550);
-      await this.onEnemyDefeated();
-      return;
-    }
+      const endEnemy = this.enemy();
+      const endPlayer = this.player();
+      if (endEnemy && endEnemy.currentHp <= 0) {
+        await this.sleep(2000);
+        await this.onEnemyDefeated();
+        return;
+      }
 
-    this.applyEndOfTurnEffects();
+      if (updatedPlayer && updatedPlayer.currentHp <= 0) {
+        this.markRunAsLost(updatedPlayer.pokemon.name);
+      }
 
-    const endEnemy = this.enemy();
-    const endPlayer = this.player();
-    if (endEnemy && endEnemy.currentHp <= 0) {
-      await this.sleep(2000);
-      await this.onEnemyDefeated();
-      return;
-    }
-
-    if (updatedPlayer && updatedPlayer.currentHp <= 0) {
-      this.markRunAsLost(updatedPlayer.pokemon.name);
-    }
-
-    if (endPlayer && endPlayer.currentHp <= 0) {
-      this.markRunAsLost(endPlayer.pokemon.name);
+      if (endPlayer && endPlayer.currentHp <= 0) {
+        this.markRunAsLost(endPlayer.pokemon.name);
+      }
+    } finally {
+      this.resolvingTurn.set(false);
     }
   }
 
@@ -321,6 +328,7 @@ export class ProModeService {
     this.transitioningToLevelUp.set(false);
     this.playerAttacking.set(false);
     this.enemyAttacking.set(false);
+    this.resolvingTurn.set(false);
     this.player.set(null);
     this.enemy.set(null);
     this.statDraftDelta.set(this.createEmptyBonusStats());
@@ -679,14 +687,14 @@ export class ProModeService {
     if (attackerIsPlayer) this.playerAttacking.set(true);
     else this.enemyAttacking.set(true);
 
-    await this.sleep(200);
+    await this.sleep(280);
 
     this.addLog(`${attackerState.pokemon.name} usa ${resolvedMove.name}!`);
 
     if (behavior.isProtectLike) {
       this.setRunPokemon(attackerIsPlayer, { ...this.getRunPokemon(attackerIsPlayer)!, protected: true });
       this.addLog(`${attackerState.pokemon.name} è protetto per questo turno!`);
-      await this.sleep(180);
+      await this.sleep(240);
       if (attackerIsPlayer) this.playerAttacking.set(false);
       else this.enemyAttacking.set(false);
       return;
@@ -740,7 +748,6 @@ export class ProModeService {
     const power = resolvedMove.power ?? 0;
 
     if (isStatusMove || power <= 0) {
-      this.addLog(`${attackerState.pokemon.name} usa ${resolvedMove.name}.`);
       this.applySecondaryEffects(attackerIsPlayer, resolvedMove, 0, behavior);
       await this.sleep(120);
       if (attackerIsPlayer) this.playerAttacking.set(false);
@@ -815,7 +822,7 @@ export class ProModeService {
       this.addLog(`${currentAttacker.pokemon.name} deve ricaricare al prossimo turno!`);
     }
 
-    await this.sleep(180);
+    await this.sleep(240);
     if (attackerIsPlayer) this.playerAttacking.set(false);
     else this.enemyAttacking.set(false);
   }
@@ -1104,15 +1111,15 @@ export class ProModeService {
       // Reset log ad ogni nuova battaglia/stage
       this.battleLog.set([]);
       if (isMiniBoss) {
-        this.addLog(`Mini Boss del livello ${stage}! ${pokemon.name} ha HP x2.`);
+        this.addLog(`Mini Boss del livello ${stage}! ${pokemon.name} è più forte del normale!`);
       }
-      this.addLog(`Livello ${stage}: nemico ${pokemon.name} (BST ${calculateBst(pokemon)}).`);
+      this.addLog(`Hai incontrato un ${pokemon.name} selvatico.`);
 
       if (playerNameForResetLogs && curedStatusBeforeBattle) {
-        this.addLog(`${playerNameForResetLogs} si è curato dallo stato alterato prima della nuova battaglia!`);
+        this.addLog(`${playerNameForResetLogs} ha trovato una bacca che ha curato l'alterazione di stato!`);
       }
-      if (playerNameForResetLogs && resetStatChangesBeforeBattle) {
-        this.addLog(`Le modifiche alle statistiche di ${playerNameForResetLogs} sono state resettate.`);
+      if (playerNameForResetLogs && !!player!.status && !curedStatusBeforeBattle) {
+        this.addLog(`${playerNameForResetLogs} non è riuscito a curarsi dall'alterazione di stato.`);
       }
     } catch (err) {
       this.error.set(this.toErrorMessage(err, 'Impossibile generare il nemico del livello.'));

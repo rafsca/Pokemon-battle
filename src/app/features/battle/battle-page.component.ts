@@ -299,6 +299,13 @@ export class BattlePageComponent {
     return this.lang.getTypeLabel(typeName);
   }
 
+  getMoveClassSymbol(move: SelectedMove): string {
+    const moveClass = move.damage_class?.name;
+    if (moveClass === 'physical') return '💥';
+    if (moveClass === 'special') return '🌀';
+    return '💫';
+  }
+
   private executeAttack(
     attacker: Pokemon,
     defender: Pokemon,

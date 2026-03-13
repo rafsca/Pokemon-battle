@@ -215,6 +215,13 @@ button {
     flex-direction: column;
     align-items: flex-start;
 
+    &:disabled {
+      opacity: 0.58;
+      cursor: not-allowed;
+      filter: grayscale(0.2);
+      transform: none;
+    }
+
     span {
       font-size: 0.78rem;
       opacity: 0.9;
@@ -307,6 +314,20 @@ button {
   }
 }
 
+.alpha-tag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.38rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: #fff;
+  background: linear-gradient(90deg, #b30000, #ff3030);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  vertical-align: middle;
+}
+
 .stat-up {
   color: #6ef59a;
 }
@@ -357,6 +378,13 @@ button {
 
 .levelup--enter {
   animation: levelup-enter 420ms ease;
+}
+
+.levelup-warning {
+  margin: 0.55rem 0 0;
+  color: #ff9f9f;
+  font-size: 0.86rem;
+  font-weight: 700;
 }
 
 @keyframes levelup-enter {
