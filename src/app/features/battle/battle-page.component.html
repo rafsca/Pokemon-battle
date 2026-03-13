@@ -88,7 +88,7 @@
                             (mouseenter)="onMoveHoverStart(move)"
                             (mouseleave)="onMoveHoverEnd()"
                             [disabled]="pokemon1MovePP()[move.name] === 0">
-                            <span class="move-btn__name">{{ getLocalizedMoveName(move) }}</span>
+                            <span class="move-btn__name">{{ getLocalizedMoveName(move) }} {{ getMoveClassSymbol(move) }}</span>
                             <div class="move-btn__stats">
                                 <span class="battle-moves-type">{{ getLocalizedMoveType(move.type.name) }}</span>
                                 <span class="battle-moves-power">Pwr: {{ move.power }}</span>
@@ -115,7 +115,7 @@
                             (mouseenter)="onMoveHoverStart(move)"
                             (mouseleave)="onMoveHoverEnd()"
                             [disabled]="pokemon2MovePP()[move.name] === 0">
-                            <span class="move-btn__name">{{ getLocalizedMoveName(move) }}</span>
+                            <span class="move-btn__name">{{ getLocalizedMoveName(move) }} {{ getMoveClassSymbol(move) }}</span>
                             <div class="move-btn__stats">
                                 <span class="battle-moves-type">{{ getLocalizedMoveType(move.type.name) }}</span>
                                 <span class="battle-moves-power">Pwr: {{ move.power }}</span>

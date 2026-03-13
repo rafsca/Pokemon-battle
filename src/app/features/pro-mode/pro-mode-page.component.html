@@ -108,6 +108,7 @@
     <app-battle-arena
       [playerPokemon]="pro.player()!.pokemon"
       [enemyPokemon]="pro.enemy()!.pokemon"
+      [enemyAlpha]="isEnemyAlpha()"
       [playerCurrentHp]="pro.player()!.currentHp"
       [playerMaxHp]="pro.player()!.maxHp"
       [enemyCurrentHp]="pro.enemy()!.currentHp"
@@ -123,7 +124,12 @@
     </app-battle-arena>
 
     <aside class="side-stats side-stats--enemy">
-      <h3>{{ pro.enemy()!.pokemon.name }} stats</h3>
+      <h3>
+        {{ pro.enemy()!.pokemon.name }} stats
+        @if (isEnemyAlpha()) {
+        <span class="alpha-tag">ALPHA</span>
+        }
+      </h3>
       <ul>
         @for (s of enemyStats; track s.key) {
         <li>
@@ -156,8 +162,9 @@
       [class]="'move-btn type-' + (move.type.name || 'unknown')"
       (click)="pro.playTurn(move.name)"
       (mouseenter)="onMoveHoverStart(move)"
-      (mouseleave)="onMoveHoverEnd()">
-      {{ getLocalizedMoveName(move) }}
+      (mouseleave)="onMoveHoverEnd()"
+      [disabled]="pro.resolvingTurn()">
+      {{ getLocalizedMoveName(move) }} {{ getMoveClassSymbol(move) }}
       <span>Tipo {{ getMoveTypeLabel(move) }} · Pow {{ move.power }} · Acc {{ move.accuracy }}</span>
     </button>
     }
@@ -175,17 +182,26 @@
       <p>Hai già 4 mosse. Scegli quale sostituire oppure clicca la nuova mossa per non impararla.</p>
       <div class="replace-grid">
         @for (move of pro.player()!.moves; track move.name) {
-        <button class="replace-btn" (click)="pro.replaceMoveWithNew(move.name)">
-          Sostituisci {{ getLocalizedMoveName(move) }}
+        <button
+          class="replace-btn"
+          (click)="pro.replaceMoveWithNew(move.name)"
+          (mouseenter)="onMoveHoverStart(move)"
+          (mouseleave)="onMoveHoverEnd()">
+          Sostituisci {{ getLocalizedMoveName(move) }} {{ getMoveClassSymbol(move) }}
         </button>
         }
-        <button class="replace-btn skip" (click)="pro.requestSkipNewMove()">
-          Non imparare {{ getLocalizedMoveName(pro.pendingNewMove()!) }}
+        <button
+          class="replace-btn skip"
+          (click)="pro.requestSkipNewMove()"
+          (mouseenter)="onMoveHoverStart(pro.pendingNewMove()!)"
+          (mouseleave)="onMoveHoverEnd()">
+          Non imparare {{ getLocalizedMoveName(pro.pendingNewMove()!) }} {{ getMoveClassSymbol(pro.pendingNewMove()!) }}
         </button>
       </div>
     </div>
     }
 
+    @if (!pro.pendingNewMove()) {
     <div class="stats-grid">
       @for (entry of pro.player()!.bonusStats | keyvalue; track entry.key) {
       <div class="stat-control">
@@ -203,9 +219,14 @@
       }
     </div>
 
-    <button class="primary" (click)="pro.continueAfterLevelUp()" [disabled]="pro.pendingStatPoints() > 0 || !!pro.pendingNewMove()">
+    <button class="primary" (click)="onContinueAfterLevelUp()">
       Continua al livello {{ pro.currentStage() }}
     </button>
+
+    @if (levelUpWarning()) {
+    <p class="levelup-warning">{{ levelUpWarning() }}</p>
+    }
+    }
   </section>
   }
 

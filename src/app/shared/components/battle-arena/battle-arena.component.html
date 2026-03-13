@@ -10,7 +10,11 @@
         }
       </div>
       <div class="battle-hp-container__label">
-        {{ enemyPokemon.name }} · Lv {{ enemyLevel }}
+        {{ enemyPokemon.name }}
+        @if (enemyAlpha) {
+        <span class="battle-alpha-tag">ALPHA</span>
+        }
+        · Lv {{ enemyLevel }}
       </div>
       <div class="battle-hp-container__bar">
         <div
