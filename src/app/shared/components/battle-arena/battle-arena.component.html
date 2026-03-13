@@ -1,6 +1,14 @@
 <div class="battle-arena-classic">
   <div class="battle-opponent">
     <div class="battle-hp-container battle-hp-container--opponent">
+      <div class="battle-type-row">
+        @for (typeName of getPokemonTypeNames(enemyPokemon); track typeName) {
+        <span class="battle-type-chip battle-type-chip--{{ typeName }}">
+          <span class="battle-type-chip__icon">{{ getTypeIcon(typeName) }}</span>
+          <span>{{ typeName }}</span>
+        </span>
+        }
+      </div>
       <div class="battle-hp-container__label">
         {{ enemyPokemon.name }} · Lv {{ enemyLevel }}
       </div>
@@ -36,6 +44,14 @@
     </div>
 
     <div class="battle-hp-container battle-hp-container--player">
+      <div class="battle-type-row">
+        @for (typeName of getPokemonTypeNames(playerPokemon); track typeName) {
+        <span class="battle-type-chip battle-type-chip--{{ typeName }}">
+          <span class="battle-type-chip__icon">{{ getTypeIcon(typeName) }}</span>
+          <span>{{ typeName }}</span>
+        </span>
+        }
+      </div>
       <div class="battle-hp-container__label">
         {{ playerPokemon.name }} · Lv {{ playerLevel }}
       </div>

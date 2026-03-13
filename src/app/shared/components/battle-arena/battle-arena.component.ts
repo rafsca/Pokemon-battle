@@ -81,4 +81,33 @@ export class BattleArenaComponent implements OnChanges {
       || this.enemyPokemon?.sprites?.front_default
       || '';
   }
+
+  getPokemonTypeNames(pokemon: Pokemon): string[] {
+    return (pokemon.types ?? []).map(t => t.type.name);
+  }
+
+  getTypeIcon(typeName: string): string {
+    const icons: Record<string, string> = {
+      normal: '⚪',
+      fire: '🔥',
+      water: '💧',
+      electric: '⚡',
+      grass: '🌿',
+      ice: '❄️',
+      fighting: '🥊',
+      poison: '☠️',
+      ground: '🪨',
+      flying: '🕊️',
+      psychic: '🔮',
+      bug: '🐛',
+      rock: '🪵',
+      ghost: '👻',
+      dragon: '🐉',
+      dark: '🌑',
+      steel: '⚙️',
+      fairy: '✨',
+    };
+
+    return icons[typeName] ?? '◼️';
+  }
 }

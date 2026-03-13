@@ -1,8 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, signal } from '@angular/core';
+import { Component, OnDestroy, effect, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { BattleStatView, ProModeService } from './pro-mode.service';
 import { BattleArenaComponent } from '../../shared/components/battle-arena/battle-arena.component';
+import { SelectedMove } from '../../core/models/move.model';
+import { LanguageService } from '../../core/services/language.service';
 
 @Component({
   selector: 'app-pro-mode-page',
@@ -11,11 +13,33 @@ import { BattleArenaComponent } from '../../shared/components/battle-arena/battl
   templateUrl: './pro-mode-page.component.html',
   styleUrls: ['./pro-mode-page.component.scss'],
 })
-export class ProModePageComponent {
+export class ProModePageComponent implements OnDestroy {
   selectedStarterId = signal<number | null>(null);
+  starterSearch = signal('');
 
-  constructor(public readonly pro: ProModeService) {
+  showMoveEffectModal = signal(false);
+  moveEffectModalTitle = signal('');
+  moveEffectModalText = signal('');
+  private hoverEffectTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor(
+    public readonly pro: ProModeService,
+    public readonly lang: LanguageService,
+  ) {
     this.pro.initialize();
+
+    effect(() => {
+      const shouldHideMoveModal = !this.pro.runActive()
+        || !this.pro.player()
+        || !this.pro.enemy()
+        || this.pro.waitingStatAllocation()
+        || this.pro.transitioningToLevelUp()
+        || this.pro.showResumeRunPrompt();
+
+      if (shouldHideMoveModal) {
+        this.onMoveHoverEnd();
+      }
+    });
   }
 
   getStatPointLabel(stat: string): string {
@@ -87,5 +111,51 @@ export class ProModePageComponent {
     const entry = this.pro.starterCatalog().find(p => p.id === id);
     const capitalized = entry?.name ? entry.name.charAt(0).toUpperCase() + entry.name.slice(1) : `#${id}`;
     return capitalized;
+  }
+
+  get filteredStarterCatalog() {
+    const query = this.starterSearch().trim().toLowerCase();
+    if (!query) return this.pro.starterCatalog();
+
+    return this.pro
+      .starterCatalog()
+      .filter(entry => `${entry.id}`.includes(query) || entry.name.toLowerCase().includes(query));
+  }
+
+  onStarterSearch(value: string): void {
+    this.starterSearch.set(value);
+  }
+
+  getMoveTypeLabel(move: SelectedMove): string {
+    return this.lang.getTypeLabel(move.type?.name);
+  }
+
+  getLocalizedMoveName(move: SelectedMove): string {
+    return this.lang.getLocalizedMoveName(move);
+  }
+
+  ngOnDestroy(): void {
+    this.onMoveHoverEnd();
+  }
+
+  onMoveHoverStart(move: SelectedMove): void {
+    this.onMoveHoverEnd();
+    this.hoverEffectTimer = setTimeout(() => {
+      this.moveEffectModalTitle.set(this.getLocalizedMoveName(move));
+      this.moveEffectModalText.set(this.getMoveEffectText(move));
+      this.showMoveEffectModal.set(true);
+    }, 1000);
+  }
+
+  onMoveHoverEnd(): void {
+    if (this.hoverEffectTimer) {
+      clearTimeout(this.hoverEffectTimer);
+      this.hoverEffectTimer = null;
+    }
+    this.showMoveEffectModal.set(false);
+  }
+
+  private getMoveEffectText(move: SelectedMove): string {
+    return this.lang.getLocalizedMoveEffectText(move);
   }
 }
