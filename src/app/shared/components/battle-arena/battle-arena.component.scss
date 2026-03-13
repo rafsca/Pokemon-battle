@@ -107,7 +107,7 @@
 
   &__bar-fill {
     height: 100%;
-    transition: width 0.3s ease;
+    transition: width 0.48s ease;
 
     &--healthy {
       background: linear-gradient(90deg, #4caf50, #8bc34a);
@@ -173,6 +173,51 @@
     background: linear-gradient(90deg, #f1948a, #e74c3c);
     color: #fff;
   }
+}
+
+.battle-type-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.45rem;
+}
+
+.battle-type-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  border-radius: 999px;
+  padding: 0.15rem 0.48rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+
+  &__icon {
+    font-size: 0.68rem;
+    line-height: 1;
+  }
+
+  &--fire { background: linear-gradient(90deg, #fd7d24, #ffb97a); }
+  &--water { background: linear-gradient(90deg, #4592c4, #7ecbff); }
+  &--grass { background: linear-gradient(90deg, #6ca31a, #8bc34a); }
+  &--electric { background: linear-gradient(90deg, #d7b300, #f0d735); color: #3b3300; }
+  &--ice { background: linear-gradient(90deg, #4eb6d7, #92dfff); color: #11343f; }
+  &--fighting { background: linear-gradient(90deg, #af4e13, #d56723); }
+  &--poison { background: linear-gradient(90deg, #8d44a0, #b97fc9); }
+  &--ground { background: linear-gradient(90deg, #ab9842, #d6bf67); color: #332b0d; }
+  &--flying { background: linear-gradient(90deg, #8da2ca, #bdb9b8); color: #2a3140; }
+  &--psychic { background: linear-gradient(90deg, #cb4f98, #f366b9); }
+  &--bug { background: linear-gradient(90deg, #6b8f39, #9dbf63); }
+  &--rock { background: linear-gradient(90deg, #8c7f3f, #ad9d55); }
+  &--ghost { background: linear-gradient(90deg, #5a427f, #7b62a3); }
+  &--dragon { background: linear-gradient(90deg, #3559a0, #53a4cf); }
+  &--dark { background: linear-gradient(90deg, #444, #666); }
+  &--steel { background: linear-gradient(90deg, #889ea1, #b1c8ca); color: #1f2f31; }
+  &--fairy { background: linear-gradient(90deg, #df8ac5, #fdb9e9); color: #3f1230; }
+  &--normal { background: linear-gradient(90deg, #8f9a9e, #b4bec0); color: #1f2a30; }
 }
 
 @keyframes hp-hit {

@@ -36,6 +36,14 @@ create table if not exists public.user_shiny_pokemon (
   primary key (user_id, pokemon_id)
 );
 
+-- Snapshot run corrente (per resume cross-session)
+create table if not exists public.pro_run_snapshots (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  snapshot jsonb not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 -- =========================================================
 -- 3) Trigger updated_at automatico
 -- =========================================================
@@ -59,12 +67,18 @@ create trigger trg_pro_progress_updated_at
 before update on public.pro_progress
 for each row execute function public.set_updated_at();
 
+drop trigger if exists trg_pro_run_snapshots_updated_at on public.pro_run_snapshots;
+create trigger trg_pro_run_snapshots_updated_at
+before update on public.pro_run_snapshots
+for each row execute function public.set_updated_at();
+
 -- =========================================================
 -- 4) RLS
 -- =========================================================
 alter table public.profiles enable row level security;
 alter table public.pro_progress enable row level security;
 alter table public.user_shiny_pokemon enable row level security;
+alter table public.pro_run_snapshots enable row level security;
 
 -- profiles: ogni utente vede/modifica solo il proprio record
 drop policy if exists "profiles_select_own" on public.profiles;
@@ -135,6 +149,31 @@ with check (auth.uid() = user_id);
 drop policy if exists "user_shiny_delete_own" on public.user_shiny_pokemon;
 create policy "user_shiny_delete_own"
 on public.user_shiny_pokemon
+for delete
+using (auth.uid() = user_id);
+
+drop policy if exists "pro_run_snapshots_select_own" on public.pro_run_snapshots;
+create policy "pro_run_snapshots_select_own"
+on public.pro_run_snapshots
+for select
+using (auth.uid() = user_id);
+
+drop policy if exists "pro_run_snapshots_insert_own" on public.pro_run_snapshots;
+create policy "pro_run_snapshots_insert_own"
+on public.pro_run_snapshots
+for insert
+with check (auth.uid() = user_id);
+
+drop policy if exists "pro_run_snapshots_update_own" on public.pro_run_snapshots;
+create policy "pro_run_snapshots_update_own"
+on public.pro_run_snapshots
+for update
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+drop policy if exists "pro_run_snapshots_delete_own" on public.pro_run_snapshots;
+create policy "pro_run_snapshots_delete_own"
+on public.pro_run_snapshots
 for delete
 using (auth.uid() = user_id);
 

@@ -10,6 +10,7 @@ import { BattleLogEntry } from '../../core/models/battle.model';
 import { PokemonApiService } from '../../core/services/pokemon-api.service';
 import { MoveApiService } from '../../core/services/move-api.service';
 import { BattleEngineService } from '../../core/services/battle-engine.service';
+import { LanguageService } from '../../core/services/language.service';
 import { calculateMaxHp, getHpPercentage, getHpBarColorClass } from '../../core/utils/hp.utils';
 import { calculateEffectiveSpeed, getBaseStat } from '../../core/utils/stat-calculator.utils';
 import { STATUS_ABBREVIATIONS } from '../../core/constants/status.constant';
@@ -103,6 +104,7 @@ export class BattlePageComponent {
     private readonly pokemonApi: PokemonApiService,
     private readonly moveApi: MoveApiService,
     private readonly battleEngine: BattleEngineService,
+    public readonly lang: LanguageService,
   ) {}
 
   ngOnInit(): void {
@@ -271,8 +273,8 @@ export class BattlePageComponent {
   onMoveHoverStart(move: SelectedMove): void {
     this.clearMoveEffectTimer();
     this.hoverEffectTimer = setTimeout(() => {
-      const effectText = this.getMoveEnglishEffectText(move);
-      this.moveEffectModalTitle.set(move.name);
+      const effectText = this.lang.getLocalizedMoveEffectText(move);
+      this.moveEffectModalTitle.set(this.getLocalizedMoveName(move));
       this.moveEffectModalText.set(effectText);
       this.showMoveEffectModal.set(true);
     }, 1000);
@@ -289,11 +291,12 @@ export class BattlePageComponent {
     this.hoverEffectTimer = null;
   }
 
-  private getMoveEnglishEffectText(move: SelectedMove): string {
-    const english = (move.effect_entries ?? []).find(entry => entry.language?.name === 'en')?.effect?.trim();
-    if (english) return english;
-    if (move.shortEffect?.trim()) return move.shortEffect.trim();
-    return 'No effect description available.';
+  getLocalizedMoveName(move: SelectedMove): string {
+    return this.lang.getLocalizedMoveName(move);
+  }
+
+  getLocalizedMoveType(typeName: string | undefined): string {
+    return this.lang.getTypeLabel(typeName);
   }
 
   private executeAttack(
@@ -388,6 +391,13 @@ export class BattlePageComponent {
     }
 
     // ─── Special case: Rest ───────────────────────────────────────────
+    if (resolvedMove.name?.toLowerCase() === 'transform') {
+      this.handleTransformMove(isAttackerPokemon1);
+      this.addLog(`${attacker.name} transformed into ${defender.name}!`, 'effect');
+      return;
+    }
+
+    // ─── Special case: Rest ───────────────────────────────────────────
     if (resolvedMove.name?.toLowerCase() === 'rest') {
       this.handleRestMove(attacker, isAttackerPokemon1);
       return;
@@ -470,6 +480,29 @@ export class BattlePageComponent {
     statusSignal.set('sleep');
     sleepSignal.set(0);
     this.addLog(`${user.name} fell asleep!`, 'status');
+  }
+
+  private handleTransformMove(isAttackerPokemon1: boolean): void {
+    const attackerPokemonSignal = isAttackerPokemon1 ? this.pokemon1 : this.pokemon2;
+    const defenderPokemon = isAttackerPokemon1 ? this.pokemon2() : this.pokemon1();
+    if (!defenderPokemon) return;
+
+    const defenderMoves = isAttackerPokemon1 ? this.pokemon2Moves() : this.pokemon1Moves();
+    const attackerMovesSignal = isAttackerPokemon1 ? this.pokemon1Moves : this.pokemon2Moves;
+    const attackerPpSignal = isAttackerPokemon1 ? this.pokemon1MovePP : this.pokemon2MovePP;
+    const defenderStatChanges = isAttackerPokemon1 ? this.pokemon2StatChanges() : this.pokemon1StatChanges();
+    const attackerStatChangesSignal = isAttackerPokemon1 ? this.pokemon1StatChanges : this.pokemon2StatChanges;
+
+    const copiedMoves = defenderMoves.slice(0, 4).map(move => ({ ...move, pp: 5 }));
+    const copiedPp: Record<string, number> = {};
+    for (const move of copiedMoves) {
+      copiedPp[move.name] = 5;
+    }
+
+    attackerPokemonSignal.set({ ...defenderPokemon });
+    attackerMovesSignal.set(copiedMoves);
+    attackerPpSignal.set(copiedPp);
+    attackerStatChangesSignal.set({ ...defenderStatChanges });
   }
 
   private handleHealingEffect(

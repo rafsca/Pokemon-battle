@@ -82,8 +82,11 @@ export interface StarterCatalogEntry {
 export class ProModeService {
   private readonly supabase = createClient(environment.supabaseUrl, environment.supabaseAnonKey);
   private readonly runStorageKey = 'pokemon-battle.pro-mode.run.v1';
+  private readonly runSnapshotTable = 'pro_run_snapshots';
   private runSnapshotHydrating = false;
   private runSnapshotReady = false;
+  private pendingRunSnapshot: ProRunSnapshot | null = null;
+  private runSnapshotSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
   isLoading = signal(false);
   error = signal<string | null>(null);
@@ -120,6 +123,10 @@ export class ProModeService {
   unlockCandidate = signal<Pokemon | null>(null);
   unlockCandidateCost = signal(0);
 
+  showResumeRunPrompt = signal(false);
+  resumeRunPromptStage = signal<number | null>(null);
+  resumeRunPromptPokemonName = signal('');
+
   readonly canStart = computed(() => !this.runActive() && !this.isLoading());
   readonly progressPercent = computed(() => {
     if (!this.currentStage()) return 0;
@@ -143,10 +150,10 @@ export class ProModeService {
       await this.loadUnlockedStarters();
       await this.loadStarterCatalog();
       await this.loadShinyStarters();
-      this.restoreRunSnapshot();
     } catch (err) {
       this.error.set(this.toErrorMessage(err, 'Errore inizializzazione modalità pro.'));
     } finally {
+      await this.restoreRunSnapshot();
       this.runSnapshotReady = true;
       this.isLoading.set(false);
     }
@@ -187,6 +194,10 @@ export class ProModeService {
 
   async startRun(starterId: number): Promise<void> {
     this.error.set(null);
+    this.showResumeRunPrompt.set(false);
+    this.resumeRunPromptStage.set(null);
+    this.resumeRunPromptPokemonName.set('');
+    this.pendingRunSnapshot = null;
     this.runWon.set(false);
     this.awaitingRunEndContinue.set(false);
     this.isLoading.set(true);
@@ -272,6 +283,7 @@ export class ProModeService {
     const updatedPlayer = this.player();
 
     if (updatedEnemy && updatedEnemy.currentHp <= 0) {
+      await this.sleep(550);
       await this.onEnemyDefeated();
       return;
     }
@@ -281,6 +293,7 @@ export class ProModeService {
     const endEnemy = this.enemy();
     const endPlayer = this.player();
     if (endEnemy && endEnemy.currentHp <= 0) {
+      await this.sleep(2000);
       await this.onEnemyDefeated();
       return;
     }
@@ -296,6 +309,8 @@ export class ProModeService {
 
   continueAfterLoss(): void {
     if (!this.awaitingRunEndContinue()) return;
+
+    this.clearRunSnapshot();
 
     this.awaitingRunEndContinue.set(false);
     this.runWon.set(false);
@@ -373,6 +388,7 @@ export class ProModeService {
     this.statDraftDelta.set(this.createEmptyBonusStats());
     this.randomLevelUpDelta.set(this.createEmptyBonusStats());
     await this.spawnEnemyForCurrentStage();
+    await this.forcePersistRunSnapshotNow();
   }
 
   replaceMoveWithNew(oldMoveName: string): void {
@@ -526,6 +542,7 @@ export class ProModeService {
   private async onEnemyDefeated(): Promise<void> {
     const stage = this.currentStage();
     this.addLog(`Livello ${stage} completato!`);
+    await this.awardMiniBossPointsIfNeeded(stage);
 
     if (stage >= MAX_LEVEL) {
       this.runActive.set(false);
@@ -587,6 +604,20 @@ export class ProModeService {
     this.waitingStatAllocation.set(true);
     this.transitioningToLevelUp.set(false);
     this.addLog(`${player.pokemon.name} è salito al livello ${newLevel}! +4 punti random e scegli altri 3 punti.`);
+  }
+
+  private async awardMiniBossPointsIfNeeded(stage: number): Promise<void> {
+    if (stage <= 0 || stage % 10 !== 0) return;
+
+    const reward = this.getMiniBossReward(stage);
+    this.points.set(this.points() + reward);
+    this.addLog(`Mini Boss sconfitto! +${reward} punti.`);
+
+    try {
+      await this.saveProgress();
+    } catch {
+      // Non bloccare la run se il salvataggio punti fallisce.
+    }
   }
 
   private async applyAttack(
@@ -688,6 +719,17 @@ export class ProModeService {
 
     if (resolvedMove.name?.toLowerCase() === 'rest') {
       this.handleRestMove(attackerIsPlayer);
+      await this.sleep(120);
+      if (attackerIsPlayer) this.playerAttacking.set(false);
+      else this.enemyAttacking.set(false);
+      return;
+    }
+
+    if (resolvedMove.name?.toLowerCase() === 'transform') {
+      const attackerName = this.getRunPokemon(attackerIsPlayer)?.pokemon.name ?? 'Pokémon';
+      const defenderName = this.getRunPokemon(!attackerIsPlayer)?.pokemon.name ?? 'bersaglio';
+      this.handleTransformMove(attackerIsPlayer);
+      this.addLog(`${attackerName} si trasforma in ${defenderName}!`);
       await this.sleep(120);
       if (attackerIsPlayer) this.playerAttacking.set(false);
       else this.enemyAttacking.set(false);
@@ -821,6 +863,21 @@ export class ProModeService {
       confusionTurns: 0,
     });
     this.addLog(`${attacker.pokemon.name} si riposa e recupera tutti gli HP!`);
+  }
+
+  private handleTransformMove(attackerIsPlayer: boolean): void {
+    const attacker = this.getRunPokemon(attackerIsPlayer);
+    const defender = this.getRunPokemon(!attackerIsPlayer);
+    if (!attacker || !defender) return;
+
+    const copiedMoves = defender.moves.slice(0, 4).map(move => ({ ...move, pp: 5 }));
+
+    this.setRunPokemon(attackerIsPlayer, {
+      ...attacker,
+      pokemon: { ...defender.pokemon },
+      moves: copiedMoves,
+      statChanges: { ...defender.statChanges },
+    });
   }
 
   private applySecondaryEffects(
@@ -1014,17 +1071,58 @@ export class ProModeService {
         seededByOpponent: false,
       });
 
+      let curedStatusBeforeBattle = false;
+      let resetStatChangesBeforeBattle = false;
+      let playerNameForResetLogs: string | null = null;
+
+      const player = this.player();
+      if (player) {
+        const hadStatus = !!player.status;
+        const hadStatChanges = Object.keys(player.statChanges ?? {}).length > 0;
+        const shouldCureStatus = hadStatus && Math.random() < 0.3;
+
+        const nextPlayer: ProRunPokemon = {
+          ...player,
+          statChanges: {},
+          protected: false,
+          mustRecharge: false,
+          pendingChargeMove: null,
+          trapTurns: 0,
+          trapResidualFraction: null,
+          seededByOpponent: false,
+          status: shouldCureStatus ? null : player.status,
+          sleepTurns: shouldCureStatus ? 0 : player.sleepTurns,
+        };
+
+        this.player.set(nextPlayer);
+
+        curedStatusBeforeBattle = shouldCureStatus;
+        resetStatChangesBeforeBattle = hadStatChanges;
+        playerNameForResetLogs = nextPlayer.pokemon.name;
+      }
+
       // Reset log ad ogni nuova battaglia/stage
       this.battleLog.set([]);
       if (isMiniBoss) {
         this.addLog(`Mini Boss del livello ${stage}! ${pokemon.name} ha HP x2.`);
       }
       this.addLog(`Livello ${stage}: nemico ${pokemon.name} (BST ${calculateBst(pokemon)}).`);
+
+      if (playerNameForResetLogs && curedStatusBeforeBattle) {
+        this.addLog(`${playerNameForResetLogs} si è curato dallo stato alterato prima della nuova battaglia!`);
+      }
+      if (playerNameForResetLogs && resetStatChangesBeforeBattle) {
+        this.addLog(`Le modifiche alle statistiche di ${playerNameForResetLogs} sono state resettate.`);
+      }
     } catch (err) {
       this.error.set(this.toErrorMessage(err, 'Impossibile generare il nemico del livello.'));
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  private getMiniBossReward(stage: number): number {
+    return 20 + stage * 2;
   }
 
   private async getRandomPokemonByBst(minBst: number, maxBst: number): Promise<Pokemon> {
@@ -1343,67 +1441,69 @@ export class ProModeService {
   private setupRunPersistenceEffect(): void {
     effect(() => {
       if (!this.runSnapshotReady || this.runSnapshotHydrating) return;
+      if (this.showResumeRunPrompt()) return;
 
-      const hasRunnableState = this.runActive() || this.awaitingRunEndContinue();
-      if (!hasRunnableState) {
+      if (!this.runActive()) {
         this.clearRunSnapshot();
         return;
       }
 
       // Evita di sovrascrivere l'ultimo snapshot valido durante stati transitori
       // (es. spawn nemico in corso con run attiva ma enemy momentaneamente null).
-      if (this.runActive()) {
-        if (!this.player()) return;
-        const enemyMissingInInvalidPhase = !this.enemy() && !this.waitingStatAllocation() && !this.transitioningToLevelUp();
-        if (enemyMissingInInvalidPhase) return;
-      }
+      if (!this.player()) return;
+      const enemyMissingInInvalidPhase = !this.enemy() && !this.waitingStatAllocation() && !this.transitioningToLevelUp();
+      if (enemyMissingInInvalidPhase) return;
 
-      const snapshot: ProRunSnapshot = {
-        runActive: this.runActive(),
-        runWon: this.runWon(),
-        awaitingRunEndContinue: this.awaitingRunEndContinue(),
-        currentStage: this.currentStage(),
-        pendingStatPoints: this.pendingStatPoints(),
-        waitingStatAllocation: this.waitingStatAllocation(),
-        transitioningToLevelUp: this.transitioningToLevelUp(),
-        playerAttacking: this.playerAttacking(),
-        enemyAttacking: this.enemyAttacking(),
-        player: this.player(),
-        enemy: this.enemy(),
-        statDraftDelta: this.statDraftDelta(),
-        randomLevelUpDelta: this.randomLevelUpDelta(),
-        pendingNewMove: this.pendingNewMove(),
-        showSkipMoveConfirm: this.showSkipMoveConfirm(),
-        battleLog: this.battleLog(),
-      };
-
-      this.saveRunSnapshot(snapshot);
+      this.scheduleRunSnapshotSave(this.buildCurrentRunSnapshot());
     });
   }
 
-  private restoreRunSnapshot(): void {
-    let raw: string | null = null;
-    try {
-      raw = localStorage.getItem(this.runStorageKey);
-    } catch {
+  private async restoreRunSnapshot(): Promise<void> {
+    const snapshot = await this.loadRunSnapshotFromDb() ?? this.loadRunSnapshotFromLocal();
+    if (!snapshot) return;
+
+    const hasPlayer = !!snapshot?.player;
+    const hasEnemyWhenRequired = !snapshot.runActive
+      || !!snapshot.enemy
+      || !!snapshot.waitingStatAllocation
+      || !!snapshot.transitioningToLevelUp;
+    const hasValidBattleState = hasPlayer && hasEnemyWhenRequired;
+    if (!hasValidBattleState) {
+      this.clearRunSnapshot();
       return;
     }
 
-    if (!raw) return;
+    if (!snapshot.runActive) {
+      this.clearRunSnapshot();
+      return;
+    }
 
+    this.pendingRunSnapshot = snapshot;
+    this.showResumeRunPrompt.set(true);
+    this.resumeRunPromptStage.set(Number(snapshot.currentStage ?? 0));
+    this.resumeRunPromptPokemonName.set(snapshot.player?.pokemon?.name ?? '');
+  }
+
+  resumeRunFromSnapshot(): void {
+    if (!this.pendingRunSnapshot) return;
+
+    this.applyRunSnapshot(this.pendingRunSnapshot);
+    this.pendingRunSnapshot = null;
+    this.showResumeRunPrompt.set(false);
+    this.resumeRunPromptStage.set(null);
+    this.resumeRunPromptPokemonName.set('');
+  }
+
+  discardRunSnapshot(): void {
+    this.pendingRunSnapshot = null;
+    this.showResumeRunPrompt.set(false);
+    this.resumeRunPromptStage.set(null);
+    this.resumeRunPromptPokemonName.set('');
+    this.clearRunSnapshot();
+  }
+
+  private applyRunSnapshot(snapshot: ProRunSnapshot): void {
     try {
-      const snapshot = JSON.parse(raw) as ProRunSnapshot;
-      const hasPlayer = !!snapshot?.player;
-      const hasEnemyWhenRequired = !snapshot.runActive
-        || !!snapshot.enemy
-        || !!snapshot.waitingStatAllocation
-        || !!snapshot.transitioningToLevelUp;
-      const hasValidBattleState = hasPlayer && hasEnemyWhenRequired;
-      if (!hasValidBattleState) {
-        this.clearRunSnapshot();
-        return;
-      }
-
       this.runSnapshotHydrating = true;
 
       this.runActive.set(!!snapshot.runActive);
@@ -1429,7 +1529,50 @@ export class ProModeService {
     }
   }
 
-  private saveRunSnapshot(snapshot: ProRunSnapshot): void {
+  private scheduleRunSnapshotSave(snapshot: ProRunSnapshot): void {
+    if (this.runSnapshotSaveTimer) clearTimeout(this.runSnapshotSaveTimer);
+    this.runSnapshotSaveTimer = setTimeout(() => {
+      void this.saveRunSnapshot(snapshot);
+    }, 250);
+  }
+
+  private async forcePersistRunSnapshotNow(): Promise<void> {
+    if (!this.runActive() || !this.player()) return;
+
+    const enemyMissingInInvalidPhase = !this.enemy() && !this.waitingStatAllocation() && !this.transitioningToLevelUp();
+    if (enemyMissingInInvalidPhase) return;
+
+    if (this.runSnapshotSaveTimer) {
+      clearTimeout(this.runSnapshotSaveTimer);
+      this.runSnapshotSaveTimer = null;
+    }
+
+    await this.saveRunSnapshot(this.buildCurrentRunSnapshot());
+  }
+
+  private buildCurrentRunSnapshot(): ProRunSnapshot {
+    return {
+      runActive: this.runActive(),
+      runWon: this.runWon(),
+      awaitingRunEndContinue: this.awaitingRunEndContinue(),
+      currentStage: this.currentStage(),
+      pendingStatPoints: this.pendingStatPoints(),
+      waitingStatAllocation: this.waitingStatAllocation(),
+      transitioningToLevelUp: this.transitioningToLevelUp(),
+      playerAttacking: this.playerAttacking(),
+      enemyAttacking: this.enemyAttacking(),
+      player: this.player(),
+      enemy: this.enemy(),
+      statDraftDelta: this.statDraftDelta(),
+      randomLevelUpDelta: this.randomLevelUpDelta(),
+      pendingNewMove: this.pendingNewMove(),
+      showSkipMoveConfirm: this.showSkipMoveConfirm(),
+      battleLog: this.battleLog(),
+    };
+  }
+
+  private async saveRunSnapshot(snapshot: ProRunSnapshot): Promise<void> {
+    await this.saveRunSnapshotToDb(snapshot);
     try {
       localStorage.setItem(this.runStorageKey, JSON.stringify(snapshot));
     } catch {
@@ -1438,10 +1581,83 @@ export class ProModeService {
   }
 
   private clearRunSnapshot(): void {
+    if (this.runSnapshotSaveTimer) {
+      clearTimeout(this.runSnapshotSaveTimer);
+      this.runSnapshotSaveTimer = null;
+    }
+
+    void this.clearRunSnapshotInDb();
+
     try {
       localStorage.removeItem(this.runStorageKey);
     } catch {
       // ignore storage errors
+    }
+  }
+
+  private loadRunSnapshotFromLocal(): ProRunSnapshot | null {
+    let raw: string | null = null;
+    try {
+      raw = localStorage.getItem(this.runStorageKey);
+    } catch {
+      return null;
+    }
+
+    if (!raw) return null;
+
+    try {
+      return JSON.parse(raw) as ProRunSnapshot;
+    } catch {
+      return null;
+    }
+  }
+
+  private async loadRunSnapshotFromDb(): Promise<ProRunSnapshot | null> {
+    const userId = this.auth.user()?.id;
+    if (!userId || !this.isDbConfigured()) return null;
+
+    try {
+      const { data, error } = await this.supabase
+        .from(this.runSnapshotTable)
+        .select('snapshot')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error || !data?.snapshot) return null;
+      return data.snapshot as ProRunSnapshot;
+    } catch {
+      return null;
+    }
+  }
+
+  private async saveRunSnapshotToDb(snapshot: ProRunSnapshot): Promise<void> {
+    const userId = this.auth.user()?.id;
+    if (!userId || !this.isDbConfigured()) return;
+
+    try {
+      await this.supabase
+        .from(this.runSnapshotTable)
+        .upsert({
+          user_id: userId,
+          snapshot,
+          updated_at: new Date().toISOString(),
+        });
+    } catch {
+      // ignore db snapshot errors
+    }
+  }
+
+  private async clearRunSnapshotInDb(): Promise<void> {
+    const userId = this.auth.user()?.id;
+    if (!userId || !this.isDbConfigured()) return;
+
+    try {
+      await this.supabase
+        .from(this.runSnapshotTable)
+        .delete()
+        .eq('user_id', userId);
+    } catch {
+      // ignore db snapshot errors
     }
   }
 
@@ -1462,6 +1678,7 @@ export class ProModeService {
   private markRunAsLost(faintedPokemonName: string): void {
     if (this.awaitingRunEndContinue()) return;
 
+    this.clearRunSnapshot();
     this.runActive.set(false);
     this.runWon.set(false);
     this.waitingStatAllocation.set(false);

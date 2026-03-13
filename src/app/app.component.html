@@ -4,19 +4,41 @@
       <img src="/logo-base-removebg-preview.png" alt="Pokemon Logo" class="logo" />
     </a>
     <div class="brand">Pokémon Battle</div>
+
+    <div class="lang-switcher">
+      <button
+        class="lang-switcher__trigger"
+        (click)="toggleLanguageMenu()"
+        [attr.aria-label]="lang.t('languageSelectAria')">
+        <span class="lang-switcher__flag">{{ lang.currentFlag() }}</span>
+      </button>
+
+      @if (showLanguageMenu) {
+      <div class="lang-switcher__menu">
+        <button (click)="selectLanguage('it')">🇮🇹 {{ lang.t('languageItalian') }}</button>
+        <button (click)="selectLanguage('en')">🇬🇧 {{ lang.t('languageEnglish') }}</button>
+      </div>
+      }
+    </div>
   </div>
 
-  <div class="links">
-    <button routerLink="battle" routerLinkActive="active" class="start" aria-label="Battle">Battle</button>
-    <button routerLink="battle-pro" routerLinkActive="active" aria-label="Battle Pro">Battle Pro 🔒</button>
-    <button routerLink="pokemon" routerLinkActive="active" aria-label="Pokemon Generator">Pokemon Generator</button>
+  <div class="nav-controls">
+    <button class="hamburger" (click)="toggleMobileMenu()" aria-label="Toggle menu">
+      ☰
+    </button>
 
-    @if (auth.isLoggedIn()) {
-    <span class="user-badge">{{ auth.user()?.email }}</span>
-    <button (click)="onLogout()" aria-label="Logout">Logout</button>
-    } @else {
-    <button routerLink="auth" routerLinkActive="active" aria-label="Login">Login</button>
-    }
+    <div class="links" [class.links--open]="showMobileMenu">
+      <button routerLink="battle" routerLinkActive="active" class="start" [attr.aria-label]="lang.t('navBattle')" (click)="closeMobileMenu()">{{ lang.t('navBattle') }}</button>
+      <button routerLink="battle-pro" routerLinkActive="active" [attr.aria-label]="lang.t('navBattlePro')" (click)="closeMobileMenu()">{{ lang.t('navBattlePro') }}</button>
+      <button routerLink="pokemon" routerLinkActive="active" [attr.aria-label]="lang.t('navPokemonGenerator')" (click)="closeMobileMenu()">{{ lang.t('navPokemonGenerator') }}</button>
+
+      @if (auth.isLoggedIn()) {
+      <span class="user-badge">{{ auth.user()?.email }}</span>
+      <button (click)="onLogout(); closeMobileMenu()" [attr.aria-label]="lang.t('navLogout')">{{ lang.t('navLogout') }}</button>
+      } @else {
+      <button routerLink="auth" routerLinkActive="active" [attr.aria-label]="lang.t('navLogin')" (click)="closeMobileMenu()">{{ lang.t('navLogin') }}</button>
+      }
+    </div>
   </div>
 </nav>
 

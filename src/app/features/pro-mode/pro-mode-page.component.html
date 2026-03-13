@@ -2,7 +2,7 @@
 <section class="starter-screen">
   <header class="topbar">
     <div>
-      <h1>Scegli il tuo starter (Run Pro)</h1>
+      <h1>Scegli il tuo starter</h1>
       <p>Starter sbloccati a colori, bloccati in bianco e nero.</p>
     </div>
     <div class="top-stats">
@@ -15,8 +15,17 @@
   <p class="error">{{ pro.error() }}</p>
   }
 
+  <div class="starter-search-wrap">
+    <input
+      class="starter-search"
+      type="text"
+      [value]="starterSearch()"
+      (input)="onStarterSearch($any($event.target).value)"
+      placeholder="Cerca starter per nome o #ID..." />
+  </div>
+
   <div class="starter-catalog">
-    @for (entry of pro.starterCatalog(); track entry.id) {
+    @for (entry of filteredStarterCatalog; track entry.id) {
     <button
       class="starter-card"
       [class.locked]="!isUnlocked(entry.id)"
@@ -26,12 +35,16 @@
       <div class="name">{{ entry.name }}</div>
       <div class="small">#{{ entry.id }}</div>
       @if (isShiny(entry.id)) {
-      <div class="shiny-tag">✨ SHINY</div>
+      <div class="shiny-tag">✨</div>
       }
       @if (!isUnlocked(entry.id)) {
       <div class="lock-tag">LOCKED</div>
       }
     </button>
+    }
+
+    @if (!filteredStarterCatalog.length) {
+    <p class="starter-empty">Nessuno starter trovato.</p>
     }
   </div>
 
@@ -141,9 +154,11 @@
     <button
       class="move-btn"
       [class]="'move-btn type-' + (move.type.name || 'unknown')"
-      (click)="pro.playTurn(move.name)">
-      {{ move.name }}
-      <span>Pow {{ move.power }} · Acc {{ move.accuracy }}</span>
+      (click)="pro.playTurn(move.name)"
+      (mouseenter)="onMoveHoverStart(move)"
+      (mouseleave)="onMoveHoverEnd()">
+      {{ getLocalizedMoveName(move) }}
+      <span>Tipo {{ getMoveTypeLabel(move) }} · Pow {{ move.power }} · Acc {{ move.accuracy }}</span>
     </button>
     }
   </div>
@@ -156,16 +171,16 @@
 
     @if (pro.pendingNewMove()) {
     <div class="learn-move-box">
-      <h4>Nuova mossa: {{ pro.pendingNewMove()!.name }}</h4>
+      <h4>Nuova mossa: {{ getLocalizedMoveName(pro.pendingNewMove()!) }}</h4>
       <p>Hai già 4 mosse. Scegli quale sostituire oppure clicca la nuova mossa per non impararla.</p>
       <div class="replace-grid">
         @for (move of pro.player()!.moves; track move.name) {
         <button class="replace-btn" (click)="pro.replaceMoveWithNew(move.name)">
-          Sostituisci {{ move.name }}
+          Sostituisci {{ getLocalizedMoveName(move) }}
         </button>
         }
         <button class="replace-btn skip" (click)="pro.requestSkipNewMove()">
-          Non imparare {{ pro.pendingNewMove()!.name }}
+          Non imparare {{ getLocalizedMoveName(pro.pendingNewMove()!) }}
         </button>
       </div>
     </div>
@@ -213,7 +228,7 @@
   <div class="modal-overlay" (click)="pro.cancelSkipNewMove()">
     <div class="modal-box" (click)="$event.stopPropagation()">
       <h4>Conferma</h4>
-      <p>Vuoi davvero non imparare {{ pro.pendingNewMove()?.name }}?</p>
+      <p>Vuoi davvero non imparare {{ pro.pendingNewMove() ? getLocalizedMoveName(pro.pendingNewMove()!) : '' }}?</p>
       <div class="modal-actions">
         <button (click)="pro.cancelSkipNewMove()">Annulla</button>
         <button class="danger" (click)="pro.confirmSkipNewMove()">Conferma</button>
@@ -221,5 +236,34 @@
     </div>
   </div>
   }
+
+  @if (showMoveEffectModal()) {
+  <div class="move-effect-hover-modal">
+    <div class="move-effect-hover-modal__title">{{ moveEffectModalTitle() }}</div>
+    <div class="move-effect-hover-modal__text">{{ moveEffectModalText() }}</div>
+  </div>
+  }
 </section>
+}
+
+@if (pro.showResumeRunPrompt()) {
+<div class="modal-overlay resume-run-modal-overlay">
+  <div class="modal-box resume-run-modal">
+    <h4 class="resume-run-modal__title">Run trovata</h4>
+    <p class="resume-run-modal__text">
+      È stata trovata una run salvata
+      @if (pro.resumeRunPromptPokemonName()) {
+      con {{ pro.resumeRunPromptPokemonName() }}
+      }
+      @if (pro.resumeRunPromptStage()) {
+      al livello {{ pro.resumeRunPromptStage() }}
+      }
+      . Vuoi continuarla?
+    </p>
+    <div class="modal-actions resume-run-modal__actions">
+      <button class="resume-run-modal__btn resume-run-modal__btn--ghost" (click)="pro.discardRunSnapshot()">No, nuova run</button>
+      <button class="resume-run-modal__btn resume-run-modal__btn--primary" (click)="pro.resumeRunFromSnapshot()">Sì, continua</button>
+    </div>
+  </div>
+</div>
 }
